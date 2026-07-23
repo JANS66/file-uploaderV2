@@ -2,15 +2,15 @@ import express from "express";
 import { z } from "zod";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { prisma } from "./db.js";
+import cors from "cors";
+import "dotenv/config";
 
 const app = express();
 
 // Middleware
 app.use(cors()); // Allows React app to make requests to this backend
 app.use(express.json()); // Parses incoming JSON request bodies
-
-// Dummy DB
-const users = [];
 
 // Define the Validation and Sanitization Schema
 const signupSchema = z.object({
@@ -47,7 +47,10 @@ app.post("/signup", async (req, res) => {
     const { name, email, password } = parseResult.data;
 
     // Check if user already exists
-    const existingUser = users.find((user) => user.email === email);
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+    });
+
     if (existingUser) {
       return res
         .status(400)
@@ -58,17 +61,18 @@ app.post("/signup", async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Save user to DB
-    const newUser = {
-      name,
-      email,
-      password: hashedPassword,
-    };
-    users.push(newUser);
+    const newUser = await prisma.user.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+      },
+    });
 
     // Generate a JWT Token
     const token = jwt.sign(
       { userId: newUser.id, email: newUser.email },
-      JWT_SECRET,
+      process.env.JWT_SECRET,
       { expiresIn: "7d" },
     );
 

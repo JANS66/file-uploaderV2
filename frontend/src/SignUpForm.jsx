@@ -50,7 +50,7 @@ export function SignUpForm() {
         password: values.password,
       };
 
-      const response = await fetch("/api/signup", {
+      const response = await fetch("http://localhost:5000/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -94,8 +94,8 @@ export function SignUpForm() {
         <form onSubmit={form.onSubmit(handleSubmit)}>
           <Stack gap="md">
             <TextInput
-              label="Full Name"
-              placeholder="Jane Doe"
+              label="Name"
+              placeholder="Jane"
               {...form.getInputProps("name")}
             />
 
