@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useForm } from "@mantine/form";
 import {
   Card,
   TextInput,
@@ -9,26 +10,61 @@ import {
   Stack,
   Anchor,
   Container,
+  Alert,
 } from "@mantine/core";
 
 export function SignUpForm() {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
+  const [loading, setLoading] = useState(false);
+  const [serverError, setServerError] = useState("");
+
+  // Initialize Mantine Form with state and validation rules
+  const form = useForm({
+    initialValues: {
+      name: "",
+      email: "",
+      password: "",
+    },
+
+    validate: {
+      name: (value) =>
+        value.trim().length < 2
+          ? "Name must be at least 2 characters long"
+          : null,
+      email: (value) =>
+        /^\S+@\S+$/.test(value.trim()) ? null : "Invalid email address",
+      password: (value) =>
+        value.length < 8 ? "Password must be at least 8 characters long" : null,
+    },
   });
 
-  const handleChange = (e) => {
-    setFormData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
-  };
+  // Handle API submission (only runs if validation passes)
+  const handleSubmit = async (values) => {
+    setLoading(true);
+    setServerError("");
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log("Submitted:", formData);
-    // API call here
+    try {
+      // Basic sanitization: Trim inputs before sending
+      const payload = {
+        name: values.name.trim(),
+        email: values.email.trim().toLowerCase(),
+        password: values.password,
+      };
+
+      const response = await fetch("/api/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to create account.");
+      }
+    } catch (err) {
+      setServerError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -41,37 +77,34 @@ export function SignUpForm() {
           Enter your details below to get started
         </Text>
 
-        <form onSubmit={handleSubmit}>
+        {serverError && (
+          <Alert color="red" mb="md" title="Error">
+            {serverError}
+          </Alert>
+        )}
+
+        {/* Wrap in form.onSubmit to catch errors and execute handler */}
+        <form onSubmit={form.onSubmit(handleSubmit)}>
           <Stack gap="md">
             <TextInput
               label="Full Name"
               placeholder="Jane Doe"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              required
+              {...form.getInputProps("name")}
             />
 
             <TextInput
               label="Email"
               placeholder="jane@example.com"
-              name="email"
-              type="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
+              {...form.getInputProps("email")}
             />
 
             <PasswordInput
               label="Password"
               placeholder="Your password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              required
+              {...form.getInputProps("password")}
             />
 
-            <Button type="submit" fullWidth mt="md">
+            <Button type="submit" fullWidth mt="md" loading={loading}>
               Sign Up
             </Button>
           </Stack>
