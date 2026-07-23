@@ -55,7 +55,7 @@ export function SignUpForm() {
         password: values.password,
       };
 
-      const response = await fetch("http://localhost:5000/signup", {
+      const response = await fetch("http://localhost:5000/api/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include", // Allows browser to save the httpOnly cookie

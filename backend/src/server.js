@@ -39,7 +39,7 @@ const signupSchema = z.object({
     .max(100, "Password is too long"),
 });
 
-app.post("/signup", async (req, res) => {
+app.post("/api/signup", async (req, res) => {
   try {
     // Validate and Sanitize Input Data
     const parseResult = signupSchema.safeParse(req.body);
