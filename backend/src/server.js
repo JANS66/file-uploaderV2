@@ -5,11 +5,18 @@ import jwt from "jsonwebtoken";
 import { prisma } from "./db.js";
 import cors from "cors";
 import "dotenv/config";
+import cookieParser from "cookie-parser";
 
 const app = express();
 
 // Middleware
-app.use(cors()); // Allows React app to make requests to this backend
+app.use(cookieParser());
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true, // MUST be true for cookies to transfer across ports
+  }),
+);
 app.use(express.json()); // Parses incoming JSON request bodies
 
 // Define the Validation and Sanitization Schema
@@ -50,7 +57,6 @@ app.post("/signup", async (req, res) => {
     const existingUser = await prisma.user.findUnique({
       where: { email },
     });
-
     if (existingUser) {
       return res
         .status(400)
@@ -76,9 +82,16 @@ app.post("/signup", async (req, res) => {
       { expiresIn: "7d" },
     );
 
+    // Set token in secure httpOnly Cookie
+    res.cookie("token", token, {
+      httpOnly: true, // Prevents JavaScript (XSS) from reading the token
+      secure: process.env.NODE_ENV === "production", // HTTPS only in production
+      sameSite: "lax", // Protects against CSRF
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+    });
+
     return res.status(201).json({
       message: "User created successfully!",
-      token,
     });
   } catch (error) {
     console.error("Signup error:", error);

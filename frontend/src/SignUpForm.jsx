@@ -53,18 +53,15 @@ export function SignUpForm() {
       const response = await fetch("http://localhost:5000/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include", // Allows browser to save the httpOnly cookie
         body: JSON.stringify(payload),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to create account.");
-      }
-
       const data = await response.json();
 
-      // Store the token in localStorage
-      localStorage.setItem("authToken", data.token);
+      if (!response.ok) {
+        throw new Error(errorData.message || "Failed to create account.");
+      }
 
       // Redirect to dashboard
     } catch (err) {
