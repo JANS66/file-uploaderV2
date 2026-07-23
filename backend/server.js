@@ -1,6 +1,7 @@
 import express from "express";
 import { z } from "zod";
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
 const app = express();
 
@@ -62,11 +63,18 @@ app.post("/signup", async (req, res) => {
       email,
       password: hashedPassword,
     };
-
     users.push(newUser);
+
+    // Generate a JWT Token
+    const token = jwt.sign(
+      { userId: newUser.id, email: newUser.email },
+      JWT_SECRET,
+      { expiresIn: "7d" },
+    );
 
     return res.status(201).json({
       message: "User created successfully!",
+      token,
     });
   } catch (error) {
     console.error("Signup error:", error);

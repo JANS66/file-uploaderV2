@@ -60,6 +60,13 @@ export function SignUpForm() {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to create account.");
       }
+
+      const data = await response.json();
+
+      // Store the token in localStorage
+      localStorage.setItem("authToken", data.token);
+
+      // Redirect to dashboard
     } catch (err) {
       setServerError(err.message);
     } finally {
