@@ -1,5 +1,7 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useForm } from "@mantine/form";
+import { useAuth } from "../context/AuthContext";
 import {
   Card,
   TextInput,
@@ -16,6 +18,9 @@ import {
 export function SignUpForm() {
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState("");
+
+  const navigate = useNavigate();
+  const { handleAuthSuccess } = useAuth(); // Consume Auth Context
 
   // Initialize Mantine Form with state and validation rules
   const form = useForm({
@@ -60,10 +65,14 @@ export function SignUpForm() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(errorData.message || "Failed to create account.");
+        throw new Error(data.message || "Failed to create account.");
       }
 
+      // Lift state up to global Auth Context
+      handleAuthSuccess(data.user);
+
       // Redirect to dashboard
+      navigate("/dashboard");
     } catch (err) {
       setServerError(err.message);
     } finally {

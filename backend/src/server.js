@@ -92,6 +92,11 @@ app.post("/signup", async (req, res) => {
 
     return res.status(201).json({
       message: "User created successfully!",
+      user: {
+        id: newUser.id,
+        name: newUser.name,
+        email: newUser.email,
+      },
     });
   } catch (error) {
     console.error("Signup error:", error);
