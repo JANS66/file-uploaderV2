@@ -106,11 +106,9 @@ app.post("/api/signup", async (req, res) => {
     });
 
     // Generate a JWT Token
-    const token = jwt.sign(
-      { userId: newUser.id, email: newUser.email },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" },
-    );
+    const token = jwt.sign({ userId: newUser.id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
 
     // Set token in secure httpOnly Cookie
     res.cookie("token", token, {
@@ -162,11 +160,9 @@ app.post("/api/login", async (req, res) => {
     }
 
     // Generate JWT
-    const token = jwt.sign(
-      { userId: user.id, email: user.email },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" },
-    );
+    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
 
     // Set httpOnly cookie
     res.cookie("token", token, {
