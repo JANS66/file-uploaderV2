@@ -52,6 +52,23 @@ const loginSchema = z.object({
     .min(1, "Password is required"),
 });
 
+// Middleware to authenticate JWT from httpOnly cookie
+const authenticateToken = (req, res, next) => {
+  const token = req.cookies.token;
+
+  if (!token) {
+    return res.status(401).json({ message: "Not authenticated" });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (error) {
+    return res.status(401).json({ message: "Invalid or expired token" });
+  }
+};
+
 app.post("/api/signup", async (req, res) => {
   try {
     // Validate and Sanitize Input Data
@@ -170,6 +187,25 @@ app.post("/api/login", async (req, res) => {
   } catch (error) {
     console.error("Login error:", error);
     return res.status(500).json({ message: "Internal server error." });
+  }
+});
+
+// GET /api/status - Returns currently logged in user profile
+app.get("/api/status", authenticateToken, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+      select: { id: true, name: true, email: true },
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    return res.json({ user });
+  } catch (error) {
+    console.error("Fetch status error:", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
 });
 

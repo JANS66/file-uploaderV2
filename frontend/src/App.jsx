@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from "react-router-dom";
+import { Loader, Center } from "@mantine/core";
 import { useAuth } from "./context/AuthContext";
 import { SignUpForm } from "./components/SignUpForm";
 import { LoginForm } from "./components/LoginForm";
@@ -16,7 +17,15 @@ function Dashboard() {
 
 // Wrapper for protected routes (Dashboard)
 function ProtectedLayout({ children }) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <Center style={{ height: "100vh" }}>
+        <Loader size="lg" />
+      </Center>
+    );
+  }
 
   if (!user) {
     return <Navigate to="/login" replace />;
@@ -32,7 +41,15 @@ function ProtectedLayout({ children }) {
 
 // Wrapper for public-only routes (Signup/Login)
 function PublicOnlyRoute({ children }) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <Center style={{ height: "100vh" }}>
+        <Loader size="lg" />
+      </Center>
+    );
+  }
 
   if (user) {
     return <Navigate to="/dashboard" replace />;
