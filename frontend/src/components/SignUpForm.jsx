@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "@mantine/form";
 import { useAuth } from "../context/AuthContext";
+import { Link } from "react-router-dom";
 import {
   Card,
   TextInput,
@@ -125,7 +126,7 @@ export function SignUpForm() {
 
         <Text ta="center" size="sm" mt="md">
           Already have an account?{" "}
-          <Anchor href="/login" size="sm">
+          <Anchor component={Link} to="/login" size="sm">
             Log in
           </Anchor>
         </Text>

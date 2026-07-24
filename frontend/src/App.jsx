@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import { SignUpForm } from "./components/SignUpForm";
+import { LoginForm } from "./components/LoginForm";
 import { Header } from "./components/Header";
 
 // Simple Dashboard component placeholder
@@ -18,7 +19,7 @@ function ProtectedLayout({ children }) {
   const { user } = useAuth();
 
   if (!user) {
-    return <Navigate to="/signup" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   return (
@@ -52,6 +53,14 @@ export default function App() {
         element={
           <PublicOnlyRoute>
             <SignUpForm />
+          </PublicOnlyRoute>
+        }
+      />
+      <Route
+        path="/login"
+        element={
+          <PublicOnlyRoute>
+            <LoginForm />
           </PublicOnlyRoute>
         }
       />

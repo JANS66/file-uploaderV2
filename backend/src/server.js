@@ -39,6 +39,19 @@ const signupSchema = z.object({
     .max(100, "Password is too long"),
 });
 
+// Login Validation and Sanitization Schema
+const loginSchema = z.object({
+  email: z
+    .string({ required_error: "Email is required" })
+    .trim()
+    .toLowerCase()
+    .email("Invalid email address format"),
+
+  password: z
+    .string({ required_error: "Password is required" })
+    .min(1, "Password is required"),
+});
+
 app.post("/api/signup", async (req, res) => {
   try {
     // Validate and Sanitize Input Data
@@ -100,6 +113,62 @@ app.post("/api/signup", async (req, res) => {
     });
   } catch (error) {
     console.error("Signup error:", error);
+    return res.status(500).json({ message: "Internal server error." });
+  }
+});
+
+app.post("/api/login", async (req, res) => {
+  try {
+    // Validate and Sanitize Input Data
+    const parseResult = loginSchema.safeParse(req.body);
+
+    if (!parseResult.success) {
+      const firstErrorMessage = parseResult.error.errors[0].message;
+      return res.status(400).json({ message: firstErrorMessage });
+    }
+
+    const { email, password } = parseResult.data;
+
+    // Find user by email
+    const user = await prisma.user.findUnique({
+      where: { email: email.trim().toLowerCase() },
+    });
+
+    if (!user) {
+      return res.status(401).json({ message: "Invalid email or password." });
+    }
+
+    // Compare passwords
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: "Invalid email or password." });
+    }
+
+    // Generate JWT
+    const token = jwt.sign(
+      { userId: user.id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" },
+    );
+
+    // Set httpOnly cookie
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    return res.json({
+      message: "Login successful",
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+      },
+    });
+  } catch (error) {
+    console.error("Login error:", error);
     return res.status(500).json({ message: "Internal server error." });
   }
 });
