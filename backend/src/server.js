@@ -6,6 +6,10 @@ import { prisma } from "./db.js";
 import cors from "cors";
 import "dotenv/config";
 import cookieParser from "cookie-parser";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
 
 const app = express();
 
@@ -68,6 +72,55 @@ const authenticateToken = (req, res, next) => {
     return res.status(401).json({ message: "Invalid or expired token" });
   }
 };
+
+// Ensure uploads folder exists
+const uploadDir = path.join(process.cwd(), "uploads");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// Configure Multer Disk Storage
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir); // Save files in the uploads/ directory
+  },
+  filename: (req, file, cb) => {
+    // Generate unique filename to prevent overwriting existing files
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname);
+    cb(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
+  },
+});
+
+// Security and Validation Filters
+const fileFilter = (req, file, cb) => {
+  const allowedMimeTypes = [
+    "image/jpeg",
+    "image/png",
+    "application/pdf",
+    "application/zip",
+    "application/x-zip-compressed",
+  ];
+
+  if (allowedMimeTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(
+      new Error(
+        "Invalid file type. Only JPEG, PNG, PDF, and ZIP files are allowed.",
+      ),
+      false,
+    );
+  }
+};
+
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit per file
+  },
+});
 
 app.post("/api/signup", async (req, res) => {
   try {
@@ -213,6 +266,52 @@ app.post("/api/logout", (req, res) => {
     sameSite: "lax",
   });
   return res.json({ message: "Logged out successfully" });
+});
+
+// POST /api/files/upload - Accepts up to 5 files at once
+app.post(
+  "/api/files/upload",
+  authenticateToken,
+  upload.array("files", 5),
+  (req, res) => {
+    try {
+      if (!req.files || req.files.length === 0) {
+        return res.status(400).json({ message: "No files uploaded." });
+      }
+
+      // Format response with metadata of saved files
+      const uploadedFiles = req.files.map((file) => ({
+        originalName: file.originalname,
+        storedName: file.filename,
+        mimeType: file.mimetype,
+        size: file.size,
+        path: file.path,
+      }));
+
+      return res.status(200).json({
+        message: "Files uploaded successfully",
+        files: uploadedFiles,
+      });
+    } catch (error) {
+      console.error("Upload error:", error);
+      return res.status(500).json({ message: "File upload failed." });
+    }
+  },
+);
+
+// Multer Error Handling Middleware
+app.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === "LIMIT_FILE_SIZE") {
+      return res.status(400).json({ message: "File size exceeds 10MB limit." });
+    }
+    return res
+      .status(400)
+      .json({ message: `Multer upload error: ${err.message}` });
+  } else if (err) {
+    return res.status(400).json({ message: err.message });
+  }
+  next();
 });
 
 const PORT = process.env.PORT || 5000;

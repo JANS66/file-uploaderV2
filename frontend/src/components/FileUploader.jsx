@@ -36,7 +36,7 @@ const sanitizeFilename = (name) => {
     .substring(0, 80); // Cap max length to 80 chars
 };
 
-export function FileUploader({ onUpload }) {
+export function FileUploader({ onUpload, isUploading }) {
   const [stagedFiles, setStagedFiles] = useState([]);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -76,10 +76,12 @@ export function FileUploader({ onUpload }) {
     setStagedFiles((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const handleUploadClick = () => {
-    if (onUpload) {
-      onUpload(stagedFiles.map((item) => item.file));
-    }
+  const handleUploadClick = async () => {
+    if (stagedFiles.length === 0) return;
+
+    // Pass raw file objects up to parent
+    await onUpload(stagedFiles.map((item) => item.file));
+    setStagedFiles([]);
   };
 
   return (
@@ -97,7 +99,7 @@ export function FileUploader({ onUpload }) {
         </Alert>
       )}
 
-      {/* Dropzone with built in validation rules */}
+      {/* Dropzone with built in validation rules and loading state */}
       <Paper withBorder radius="md" p="xl" shadow="sm">
         <Dropzone
           onDrop={handleDrop}
@@ -105,6 +107,8 @@ export function FileUploader({ onUpload }) {
           maxSize={MAX_FILE_SIZE}
           accept={ALLOWED_TYPES}
           radius="md"
+          loading={isUploading} // Dims dropzone and shows overlay spinner during upload
+          disabled={isUploading}
         >
           <Group
             justify="center"
@@ -153,6 +157,7 @@ export function FileUploader({ onUpload }) {
               variant="filled"
               leftSection={<IconUpload size={14} />}
               onClick={handleUploadClick}
+              loading={isUploading} // Disables button and turns leftSection into a spinner
             >
               Upload Files
             </Button>
@@ -178,6 +183,7 @@ export function FileUploader({ onUpload }) {
                     color="red"
                     variant="subtle"
                     onClick={() => handleRemoveFile(item.id)}
+                    disabled={isUploading} // Prevents deleting item while upload fetch is active
                   >
                     <IconTrash size={16} />
                   </ActionIcon>
