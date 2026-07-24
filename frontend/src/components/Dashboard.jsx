@@ -1,9 +1,12 @@
-import { Container, Title, Text, Stack } from "@mantine/core";
+import { Container, Title, Text, Stack, Group, Button } from "@mantine/core";
+import { CreateFolderModal } from "./CreateFolderModal";
+import { IconFolderPlus } from "@tabler/icons-react";
 import { FileUploader } from "./FileUploader";
 import { useState } from "react";
 
 export function Dashboard() {
   const [uploading, setUploading] = useState(false);
+  const [modalOpened, setModalOpened] = useState(false);
 
   const handleUploadFiles = async (files) => {
     const formData = new FormData();
@@ -27,20 +30,42 @@ export function Dashboard() {
     }
   };
 
+  // Mock API handler for folder creation
+  const handleCreateFolder = async (folderData) => {
+    console.log("Folder created", folderData);
+  };
+
   return (
     <Container size="md" py="xl">
       <Stack gap="lg">
         {/* Header Section */}
-        <div>
-          <Title order={2}>File Manager</Title>
-          <Text c="dimmed" size="sm">
-            Upload and manage your documents securely.
-          </Text>
-        </div>
+        <Group justify="space-between" align="center">
+          <div>
+            <Title order={2}>File Manager</Title>
+            <Text c="dimmed" size="sm">
+              Upload and manage your documents securely.
+            </Text>
+          </div>
+
+          {/* Action Trigger Button */}
+          <Button
+            variant="light"
+            leftSection={<IconFolderPlus size={18} />}
+            onClick={() => setModalOpened(true)}
+          >
+            New Folder
+          </Button>
+        </Group>
 
         {/* Upload Component */}
         <FileUploader onUpload={handleUploadFiles} isUploading={uploading} />
 
+        {/* Create Folder Modal */}
+        <CreateFolderModal
+          opened={modalOpened}
+          onClose={() => setModalOpened(false)}
+          onCreateFolder={handleCreateFolder}
+        />
         {/* Future components like <FileList /> or <StorageStats /> go here */}
       </Stack>
     </Container>
