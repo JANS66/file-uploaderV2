@@ -11,4 +11,23 @@ model User {
   name      String
   email     String   @unique
   password  String
+
+  // Relation: A user can have many uploaded files
+  files     File[]
+}
+
+model File {
+  id           String   @id @default(uuid())
+  originalName String
+  storedName   String   @unique
+  mimeType     String
+  size         Int      // File size in bytes
+  path         String   // Storage path on disk/server
+
+  // Relation to User
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }

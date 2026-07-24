@@ -273,24 +273,41 @@ app.post(
   "/api/files/upload",
   authenticateToken,
   upload.array("files", 5),
-  (req, res) => {
+  async (req, res) => {
     try {
       if (!req.files || req.files.length === 0) {
         return res.status(400).json({ message: "No files uploaded." });
       }
 
-      // Format response with metadata of saved files
-      const uploadedFiles = req.files.map((file) => ({
+      const userId = req.user.userId;
+
+      // Prepare file records for batch database insert
+      const fileData = req.files.map((file) => ({
         originalName: file.originalname,
         storedName: file.filename,
         mimeType: file.mimetype,
         size: file.size,
         path: file.path,
+        userId: userId,
       }));
 
-      return res.status(200).json({
-        message: "Files uploaded successfully",
-        files: uploadedFiles,
+      // Save metadata to Database
+      await prisma.file.createMany({
+        data: fileData,
+      });
+
+      // Query saved files to return complete records with IDs and timestamps
+      const savedFiles = await prisma.file.findMany({
+        where: {
+          storedName: {
+            in: req.files.map((f) => f.filename),
+          },
+        },
+      });
+
+      return res.status(201).json({
+        message: "Files uploaded and saved to database successfully!",
+        files: savedFiles,
       });
     } catch (error) {
       console.error("Upload error:", error);
