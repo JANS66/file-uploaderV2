@@ -205,6 +205,16 @@ app.get("/api/status", authenticateToken, async (req, res) => {
   }
 });
 
+// POST /api/logout - Clears authentication cookie
+app.post("/api/logout", (req, res) => {
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+  });
+  return res.json({ message: "Logged out successfully" });
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

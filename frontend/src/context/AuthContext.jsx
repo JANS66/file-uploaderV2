@@ -37,9 +37,17 @@ export const AuthProvider = ({ children }) => {
     setUser(userData);
   };
 
-  const logout = () => {
-    setUser(null);
-    // Eventually trigger a /logout endpoint here to clear cookies
+  const logout = async () => {
+    try {
+      await fetch("http://localhost:5000/api/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (error) {
+      console.error("Logout request error:", error);
+    } finally {
+      setUser(null);
+    }
   };
 
   return (
