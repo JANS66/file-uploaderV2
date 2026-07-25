@@ -1,36 +1,59 @@
-import { Container, Title, Text, Stack, Group, Button } from "@mantine/core";
+import {
+  Container,
+  Title,
+  Text,
+  Stack,
+  Group,
+  Button,
+  Loader,
+  Center,
+} from "@mantine/core";
 import { CreateFolderModal } from "./CreateFolderModal";
 import { IconFolderPlus } from "@tabler/icons-react";
 import { RootDirectory } from "./RootDirectory";
 import { FileUploader } from "./FileUploader";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export function Dashboard() {
   const [uploading, setUploading] = useState(false);
   const [modalOpened, setModalOpened] = useState(false);
 
-  // Mock initial state for files and folders
-  const [folders, setFolders] = useState([
-    { id: "f1", name: "Documents", folderId: null },
-    { id: "f2", name: "Invoices", folderId: null },
-  ]);
+  // /api/contents state
+  const [folders, setFolders] = useState([]);
+  const [files, setFiles] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const [files, setFiles] = useState([
-    {
-      id: "file1",
-      originalName: "resume.pdf",
-      mimeType: "application/pdf",
-      size: 2450000,
-      folderId: null,
-    },
-    {
-      id: "file2",
-      originalName: "photo.png",
-      mimeType: "image/png",
-      size: 1048576,
-      folderId: "f1", // Lives inside "Documents", wont show in Root Directory
-    },
-  ]);
+  // Initial load: Fetch root directory contents ONCE on mount
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadContents() {
+      try {
+        const res = await fetch("http://localhost:5000/api/contents", {
+          method: "GET",
+          credentials: "include",
+        });
+
+        if (!res.ok) throw new Error("Failed to load contents");
+
+        const data = await res.json();
+        if (isMounted) {
+          setFolders(data.folders || []);
+          setFiles(data.files || []);
+        }
+      } catch (err) {
+        console.error("Error loading contents:", err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+
+    loadContents();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleUploadFiles = async (files) => {
     const formData = new FormData();
@@ -44,9 +67,13 @@ export function Dashboard() {
         body: formData,
       });
 
+      const data = await res.json();
       if (!res.ok) throw new Error("Upload failed");
 
-      console.log("Uploaded successfully");
+      // Append newly uploaded files returned by backend
+      if (data.files && Array.isArray(data.files)) {
+        setFiles((prev) => [...prev, ...data.files]);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -54,7 +81,7 @@ export function Dashboard() {
     }
   };
 
-  // Mock API handler for folder creation
+  // Handle Folder Creation (Appends newly created folder to state)
   const handleCreateFolder = async (folderData) => {
     const response = await fetch("http://localhost:5000/api/folders", {
       method: "POST",
@@ -71,7 +98,10 @@ export function Dashboard() {
       throw new Error(data.message || "Failed to create folder");
     }
 
-    console.log("Folder created on server");
+    // Append newly created folder returned by backend
+    if (data.folder) {
+      setFolders((prev) => [...prev, data.folder]);
+    }
   };
 
   return (
@@ -99,20 +129,26 @@ export function Dashboard() {
         {/* Upload Component */}
         <FileUploader onUpload={handleUploadFiles} isUploading={uploading} />
 
-        {/* Root Directory Component */}
-        <RootDirectory
-          folders={folders}
-          files={files}
-          onOpenFolder={(folder) =>
-            console.log("Navigating to folder:", folder.name)
-          }
-          onDeleteFolder={(id) =>
-            setFolders((prev) => prev.filter((f) => f.id !== id))
-          }
-          onDeleteFile={(id) =>
-            setFiles((prev) => prev.filter((f) => f.id !== id))
-          }
-        />
+        {/* Directory with Loading State */}
+        {loading ? (
+          <Center p="xl">
+            <Loader size="md" />
+          </Center>
+        ) : (
+          <RootDirectory
+            folders={folders}
+            files={files}
+            onOpenFolder={(folder) =>
+              console.log("Navigating to folder:", folder.name)
+            }
+            onDeleteFolder={(id) =>
+              setFolders((prev) => prev.filter((f) => f.id !== id))
+            }
+            onDeleteFile={(id) =>
+              setFiles((prev) => prev.filter((f) => f.id !== id))
+            }
+          />
+        )}
 
         {/* Create Folder Modal */}
         <CreateFolderModal
