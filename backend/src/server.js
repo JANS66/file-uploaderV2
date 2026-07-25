@@ -309,15 +309,6 @@ app.post(
         data: fileData,
       });
 
-      // Query saved files to return complete records with IDs and timestamps
-      const savedFiles = await prisma.file.findMany({
-        where: {
-          storedName: {
-            in: req.files.map((f) => f.filename),
-          },
-        },
-      });
-
       return res.status(201).json({
         message: "Files uploaded and saved to database successfully!",
       });
@@ -342,7 +333,7 @@ app.post("/api/folders", authenticateToken, async (req, res) => {
     const userId = req.user.userId;
 
     // Persist folder in PostgreSQL
-    const newFolder = await prisma.folder.create({
+    await prisma.folder.create({
       data: {
         name,
         userId,
