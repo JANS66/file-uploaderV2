@@ -7,26 +7,31 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
-  password  String
+  id       String @id @default(uuid())
+  name     String
+  email    String @unique
+  password String
 
   // Relation: A user can have many uploaded files
-  files     File[]
-  folders   Folder[] // Relation: User has many folders
+  files   File[]
+  folders Folder[] // Relation: User has many folders
 }
 
 model Folder {
-  id        String   @id @default(uuid())
-  name      String
+  id   String @id @default(uuid())
+  name String
 
   // Relation to User
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Subfolder Relation using folderId
+  folderId String?
+  parent   Folder?  @relation("FolderHierarchy", fields: [folderId], references: [id], onDelete: Cascade)
+  children Folder[] @relation("FolderHierarchy")
 
   // Relation to File
-  files     File[]   // Relation: Folder has many files
+  files File[] // Relation: Folder has many files
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -36,21 +41,21 @@ model Folder {
 }
 
 model File {
-  id           String   @id @default(uuid())
+  id           String @id @default(uuid())
   originalName String
-  storedName   String   @unique
+  storedName   String @unique
   mimeType     String
-  size         Int      // File size in bytes
-  path         String   // Storage path on disk/server
+  size         Int // File size in bytes
+  path         String // Storage path on disk/server
 
   // Relation to User
-  userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Relation to Folder (null = root level)
-  folderId     String?
-  folder       Folder?  @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  folderId String?
+  folder   Folder? @relation(fields: [folderId], references: [id], onDelete: Cascade)
 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

@@ -69,6 +69,19 @@ const createFolderSchema = z.object({
     .transform((val) => val.replace(/[^a-zA-Z0-9.\-_ ]/g, "_")), // Automatic sanitization
 });
 
+const contentsQuerySchema = z.object({
+  folderId: z
+    .string()
+    .trim()
+    .optional()
+    .transform((val) =>
+      !val || val === "null" || val === "undefined" ? null : val,
+    )
+    .refine((val) => val === null || z.string().uuid().safeParse(val).success, {
+      message: "Invalid folderId format. Must be a valid UUID or null.",
+    }),
+});
+
 // Middleware to authenticate JWT from httpOnly cookie
 const authenticateToken = (req, res, next) => {
   const token = req.cookies.token;
@@ -353,6 +366,45 @@ app.post("/api/folders", authenticateToken, async (req, res) => {
 
     console.error("Folder creation error:", error);
     return res.status(500).json({ message: "Failed to create folder." });
+  }
+});
+
+// GET /api/contents?folderId=...
+app.get("/api/contents", authenticateToken, async (req, res) => {
+  try {
+    // Validate query parameters
+    const parseResult = contentsQuerySchema.safeParse(req.query);
+
+    if (!parseResult.success) {
+      const errorMessage = parseResult.error.errors[0].message;
+      return res.status(400).json({ message: errorMessage });
+    }
+
+    // targetFolderId is guaranteed to be null OR a valid UUID string
+    const { folderId: targetFolderId } = parseResult.data;
+    const userId = req.user.userId;
+
+    const [folders, files] = await Promise.all([
+      // Fetch folders where folderId === targetFolderId
+      prisma.folder.findMany({
+        where: { userId, folderId: targetFolderId },
+        orderBy: { name: "asc" },
+      }),
+      // Fetch files where folderId === targetFolderId
+      prisma.file.findMany({
+        where: { userId, folderId: targetFolderId },
+        orderBy: { createdAt: "desc" },
+      }),
+    ]);
+
+    return res.json({
+      currentFolderId: targetFolderId,
+      folders,
+      files,
+    });
+  } catch (error) {
+    console.error("Error fetching contents:", error);
+    return res.status(500).json({ message: "Failed to fetch contents." });
   }
 });
 

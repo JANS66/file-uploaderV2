@@ -127,7 +127,7 @@ export function RootDirectory({
             </Table.Tr>
           ))}
 
-          {/* 2. Render Files Second */}
+          {/* Render Files Second */}
           {rootFiles.map((file) => (
             <Table.Tr key={`file-${file.id}`}>
               <Table.Td>
