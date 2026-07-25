@@ -320,7 +320,6 @@ app.post(
 
       return res.status(201).json({
         message: "Files uploaded and saved to database successfully!",
-        files: savedFiles,
       });
     } catch (error) {
       console.error("Upload error:", error);
@@ -330,7 +329,7 @@ app.post(
 );
 
 // POST /api/folders - Creates a new folder
-app.post("/api/folders", authenticateToken, (req, res) => {
+app.post("/api/folders", authenticateToken, async (req, res) => {
   try {
     const parseResult = createFolderSchema.safeParse(req.body);
 
@@ -340,18 +339,27 @@ app.post("/api/folders", authenticateToken, (req, res) => {
     }
 
     const { name } = parseResult.data;
+    const userId = req.user.userId;
 
-    const mockFolder = {
-      name,
-      userId: req.user.userId,
-      createdAt: new Date().toISOString(),
-    };
+    // Persist folder in PostgreSQL
+    const newFolder = await prisma.folder.create({
+      data: {
+        name,
+        userId,
+      },
+    });
 
     return res.status(201).json({
       message: "Folder created successfully",
-      folder: mockFolder,
     });
   } catch (error) {
+    // Handle Prisma unique constraint violation (duplicate folder name for same user)
+    if (error.code === "P2002") {
+      return res.status(400).json({
+        message: "A folder with this name already exists.",
+      });
+    }
+
     console.error("Folder creation error:", error);
     return res.status(500).json({ message: "Failed to create folder." });
   }

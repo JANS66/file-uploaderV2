@@ -14,6 +14,25 @@ model User {
 
   // Relation: A user can have many uploaded files
   files     File[]
+  folders   Folder[] // Relation: User has many folders
+}
+
+model Folder {
+  id        String   @id @default(uuid())
+  name      String
+
+  // Relation to User
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Relation to File
+  files     File[]   // Relation: Folder has many files
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Unique constraint so user cannot have two folders with the same name
+  @@unique([name, userId])
 }
 
 model File {
@@ -27,6 +46,10 @@ model File {
   // Relation to User
   userId       String
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Relation to Folder (null = root level)
+  folderId     String?
+  folder       Folder?  @relation(fields: [folderId], references: [id], onDelete: Cascade)
 
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

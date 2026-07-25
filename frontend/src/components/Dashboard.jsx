@@ -48,7 +48,7 @@ export function Dashboard() {
       throw new Error(data.message || "Failed to create folder");
     }
 
-    console.log("Folder created on server:", data.folder);
+    console.log("Folder created on server");
   };
 
   return (
