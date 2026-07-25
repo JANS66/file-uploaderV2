@@ -32,7 +32,23 @@ export function Dashboard() {
 
   // Mock API handler for folder creation
   const handleCreateFolder = async (folderData) => {
-    console.log("Folder created", folderData);
+    const response = await fetch("http://localhost:5000/api/folders", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include", // Send httpOnly JWT cookie for authentication
+      body: JSON.stringify(folderData), // Sends { name: "My Folder" }
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      // Throw error so handleSubmit in modal catches it and sets form error message
+      throw new Error(data.message || "Failed to create folder");
+    }
+
+    console.log("Folder created on server:", data.folder);
   };
 
   return (

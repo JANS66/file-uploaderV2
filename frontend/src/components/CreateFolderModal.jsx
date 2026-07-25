@@ -40,10 +40,16 @@ export function CreateFolderModal({ opened, onClose, onCreateFolder }) {
   const handleSubmit = async (value) => {
     const cleanName = sanitizeFolderName(value.folderName);
 
-    console.log("Mock API Call: Creating folder ->", { name: cleanName });
-
-    form.reset();
-    onClose();
+    try {
+      await onCreateFolder({ name: cleanName });
+      form.reset();
+      onClose();
+    } catch (error) {
+      form.setFieldError(
+        "folderName",
+        error.message || "Failed to create folder.",
+      );
+    }
   };
 
   const handleClose = () => {

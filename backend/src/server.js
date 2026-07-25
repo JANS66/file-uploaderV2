@@ -56,6 +56,19 @@ const loginSchema = z.object({
     .min(1, "Password is required"),
 });
 
+const createFolderSchema = z.object({
+  name: z
+    .string({ required_error: "Folder name is required." })
+    .trim()
+    .min(2, "Folder name must be at least 2 characters long.")
+    .max(50, "Folder name cannot exceed 50 characters.")
+    .regex(
+      /^[^/\\?%*:|"<>]+$/,
+      'Folder name cannot contain special characters like / \\ ? * : | " < >',
+    )
+    .transform((val) => val.replace(/[^a-zA-Z0-9.\-_ ]/g, "_")), // Automatic sanitization
+});
+
 // Middleware to authenticate JWT from httpOnly cookie
 const authenticateToken = (req, res, next) => {
   const token = req.cookies.token;
@@ -315,6 +328,34 @@ app.post(
     }
   },
 );
+
+// POST /api/folders - Creates a new folder
+app.post("/api/folders", authenticateToken, (req, res) => {
+  try {
+    const parseResult = createFolderSchema.safeParse(req.body);
+
+    if (!parseResult.success) {
+      const firstErrorMessage = parseResult.error.errors[0].message;
+      return res.status(400).json({ message: firstErrorMessage });
+    }
+
+    const { name } = parseResult.data;
+
+    const mockFolder = {
+      name,
+      userId: req.user.userId,
+      createdAt: new Date().toISOString(),
+    };
+
+    return res.status(201).json({
+      message: "Folder created successfully",
+      folder: mockFolder,
+    });
+  } catch (error) {
+    console.error("Folder creation error:", error);
+    return res.status(500).json({ message: "Failed to create folder." });
+  }
+});
 
 // Multer Error Handling Middleware
 app.use((err, req, res, next) => {
