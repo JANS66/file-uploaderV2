@@ -400,7 +400,6 @@ app.get("/api/contents", authenticateToken, async (req, res) => {
     ]);
 
     return res.json({
-      currentFolderId: targetFolderId,
       folders,
       files,
     });
