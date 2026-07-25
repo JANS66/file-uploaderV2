@@ -317,13 +317,14 @@ app.post(
         userId: userId,
       }));
 
-      // Save metadata to Database
-      await prisma.file.createMany({
+      // Use createManyAndReturn to fetch full database objects with IDs & timestamps
+      const createdFiles = await prisma.file.createManyAndReturn({
         data: fileData,
       });
 
       return res.status(201).json({
         message: "Files uploaded and saved to database successfully!",
+        files: createdFiles,
       });
     } catch (error) {
       console.error("Upload error:", error);
@@ -345,8 +346,8 @@ app.post("/api/folders", authenticateToken, async (req, res) => {
     const { name } = parseResult.data;
     const userId = req.user.userId;
 
-    // Persist folder in PostgreSQL
-    await prisma.folder.create({
+    // Persist folder in PostgreSQL and store the returned record
+    const createdFolder = await prisma.folder.create({
       data: {
         name,
         userId,
@@ -355,6 +356,7 @@ app.post("/api/folders", authenticateToken, async (req, res) => {
 
     return res.status(201).json({
       message: "Folder created successfully",
+      folder: createdFolder,
     });
   } catch (error) {
     // Handle Prisma unique constraint violation (duplicate folder name for same user)
