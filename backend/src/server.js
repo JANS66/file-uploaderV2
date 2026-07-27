@@ -83,6 +83,18 @@ const contentsQuerySchema = z.object({
     }),
 });
 
+const updateFolderSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Folder name cannot be empty.")
+    .max(255, "Folder name is too long."),
+});
+
+const folderIdParamSchema = z.object({
+  id: z.string().uuid("Invalid folder ID format."),
+});
+
 // Middleware to authenticate JWT from httpOnly cookie
 const authenticateToken = (req, res, next) => {
   const token = req.cookies.token;
@@ -412,6 +424,59 @@ app.get("/api/contents", authenticateToken, async (req, res) => {
   } catch (error) {
     console.error("Error fetching contents:", error);
     return res.status(500).json({ message: "Failed to fetch contents." });
+  }
+});
+
+app.put("/api/folders/:id", authenticateToken, async (req, res) => {
+  try {
+    // Validate route parameter
+    const paramResult = folderIdParamSchema.safeParse(req.params);
+    if (!paramResult.success) {
+      return res
+        .status(400)
+        .json({ message: paramResult.error.errors[0].message });
+    }
+
+    // Validate and sanitize body payload
+    const bodyResult = updateFolderSchema.safeParse(req.body);
+    if (!bodyResult.success) {
+      return res
+        .status(400)
+        .json({ message: bodyResult.error.errors[0].message });
+    }
+
+    const { id } = paramResult.data;
+    const { name } = bodyResult.data;
+    const userId = req.user.userId;
+
+    // Ensure the folder exists and belongs to the authenticated user
+    const existingFolder = await prisma.folder.findFirst({
+      where: { id, userId },
+    });
+
+    if (!existingFolder) {
+      return res.status(404).json({ message: "Folder not found." });
+    }
+
+    // Update the folder record
+    const updatedFolder = await prisma.folder.update({
+      where: { id },
+      data: { name },
+    });
+
+    return res.status(200).json({
+      message: "Folder renamed successfully.",
+      folder: updatedFolder,
+    });
+  } catch (error) {
+    if (Error.code === "P2002") {
+      return res.status(400).json({
+        message: "A folder with this name already exists.",
+      });
+    }
+
+    console.error("Folder update error:", error);
+    return res.status(500).json({ message: "Failed to update folder." });
   }
 });
 

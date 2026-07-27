@@ -13,10 +13,12 @@ import { IconFolderPlus } from "@tabler/icons-react";
 import { DirectoryView } from "./DirectoryView";
 import { FileUploader } from "./FileUploader";
 import { useState, useEffect } from "react";
+import { EditFolderModal } from "./EditFolderModal";
 
 export function Dashboard() {
   const [uploading, setUploading] = useState(false);
   const [modalOpened, setModalOpened] = useState(false);
+  const [editingFolder, setEditingFolder] = useState(null); // Tracks folder selected for edit
 
   // Folder navigation state
   const [currentFolder, setCurrentFolder] = useState(null); // null = Root
@@ -136,6 +138,35 @@ export function Dashboard() {
     );
   };
 
+  const handleEditFolder = async (folderId, newName) => {
+    const response = await fetch(
+      `http://localhost:5000/api/folders/${folderId}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ name: newName }),
+      },
+    );
+
+    const data = await response.json();
+    if (!response.ok) {
+      // Throw so EditFolderModal catches it and displays form.setFieldError
+      throw new Error(data.message || "Failed to rename folder");
+    }
+
+    // Update local state directly with the servers sanitized response
+    if (data.folder) {
+      setFolders((prev) =>
+        prev.map((f) =>
+          f.id === folderId ? { ...f, name: data.folder.name } : f,
+        ),
+      );
+    }
+  };
+
   return (
     <Container size="md" py="xl">
       <Stack gap="lg">
@@ -173,6 +204,7 @@ export function Dashboard() {
             breadcrumbs={breadcrumbs}
             onNavigateBreadcrumb={handleNavigateBreadcrumb}
             onOpenFolder={handleOpenFolder}
+            onEditFolder={(folder) => setEditingFolder(folder)} // Open edit modal
             onDeleteFolder={(id) =>
               setFolders((prev) => prev.filter((f) => f.id !== id))
             }
@@ -188,7 +220,14 @@ export function Dashboard() {
           onClose={() => setModalOpened(false)}
           onCreateFolder={handleCreateFolder}
         />
-        {/* Future components like <FileList /> or <StorageStats /> go here */}
+
+        {/* Edit Folder Modal */}
+        <EditFolderModal
+          opened={Boolean(editingFolder)}
+          onClose={() => setEditingFolder(null)}
+          folder={editingFolder}
+          onRenameFolder={handleEditFolder}
+        />
       </Stack>
     </Container>
   );

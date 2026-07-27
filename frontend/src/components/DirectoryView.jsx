@@ -16,6 +16,7 @@ import {
   IconFile,
   IconDotsVertical,
   IconTrash,
+  IconEdit,
   IconFolderOpen,
   IconDownload,
   IconChevronRight,
@@ -36,6 +37,7 @@ export function DirectoryView({
   breadcrumbs = [],
   onNavigateBreadcrumb,
   onOpenFolder,
+  onEditFolder,
   onDeleteFolder,
   onDeleteFile,
 }) {
@@ -131,6 +133,17 @@ export function DirectoryView({
                       </ActionIcon>
                     </Menu.Target>
                     <Menu.Dropdown>
+                      {/* Edit Menu Item */}
+                      <Menu.Item
+                        leftSection={<IconEdit size={14} />}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEditFolder(folder);
+                        }}
+                      >
+                        Edit
+                      </Menu.Item>
+                      {/* Delete Menu Item */}
                       <Menu.Item
                         leftSection={<IconTrash size={14} />}
                         color="red"
