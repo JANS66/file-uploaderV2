@@ -67,6 +67,7 @@ const createFolderSchema = z.object({
       'Folder name cannot contain special characters like / \\ ? * : | " < >',
     )
     .transform((val) => val.replace(/[^a-zA-Z0-9.\-_ ]/g, "_")), // Automatic sanitization
+  folderId: z.string().uuid().nullable().optional(),
 });
 
 const contentsQuerySchema = z.object({
@@ -306,6 +307,9 @@ app.post(
       }
 
       const userId = req.user.userId;
+      const rawFolderId = req.body.folderId;
+      const targetFolderId =
+        rawFolderId && rawFolderId !== "null" ? rawFolderId : null;
 
       // Prepare file records for batch database insert
       const fileData = req.files.map((file) => ({
@@ -315,6 +319,7 @@ app.post(
         size: file.size,
         path: file.path,
         userId: userId,
+        folderId: targetFolderId,
       }));
 
       // Use createManyAndReturn to fetch full database objects with IDs & timestamps
@@ -343,7 +348,7 @@ app.post("/api/folders", authenticateToken, async (req, res) => {
       return res.status(400).json({ message: firstErrorMessage });
     }
 
-    const { name } = parseResult.data;
+    const { name, folderId } = parseResult.data;
     const userId = req.user.userId;
 
     // Persist folder in PostgreSQL and store the returned record
@@ -351,6 +356,7 @@ app.post("/api/folders", authenticateToken, async (req, res) => {
       data: {
         name,
         userId,
+        folderId: folderId || null, // Connects to parent folder if provided, else null for root
       },
     });
 

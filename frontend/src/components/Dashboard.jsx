@@ -67,6 +67,11 @@ export function Dashboard() {
     const formData = new FormData();
     files.forEach((file) => formData.append("files", file));
 
+    // If viewing a subfolder, attach folderId to the FormData payload
+    if (currentFolder?.id) {
+      formData.append("folderId", currentFolder.id);
+    }
+
     setUploading(true);
     try {
       const res = await fetch("http://localhost:5000/api/files/upload", {
@@ -91,13 +96,18 @@ export function Dashboard() {
 
   // Handle Folder Creation (Appends newly created folder to state)
   const handleCreateFolder = async (folderData) => {
+    const payload = {
+      ...folderData, // { name: "New Folder" }
+      folderId: currentFolder?.id || null, // Attach parent folderId context
+    };
+
     const response = await fetch("http://localhost:5000/api/folders", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       credentials: "include", // Send httpOnly JWT cookie for authentication
-      body: JSON.stringify(folderData), // Sends { name: "My Folder" }
+      body: JSON.stringify(payload), // Sends { name: "My Folder" }
     });
 
     const data = await response.json();
