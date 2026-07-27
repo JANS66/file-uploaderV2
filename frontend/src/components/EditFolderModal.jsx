@@ -18,14 +18,17 @@ export function EditFolderModal({ opened, onClose, folder, onRenameFolder }) {
     },
   });
 
+  // Destructure stable helper methods
+  const { setInitialValues, setValues, clearErrors } = form;
+
   // Sync initial form values
   useEffect(() => {
     if (folder) {
-      form.setInitialValues({ name: folder.name || "" });
-      form.setValues({ name: folder.name || "" });
-      form.clearErrors();
+      setInitialValues({ name: folder.name || "" });
+      setValues({ name: folder.name || "" });
+      clearErrors();
     }
-  }, [folder]);
+  }, [folder, setInitialValues, setValues, clearErrors]);
 
   const handleSubmit = async (values) => {
     const sanitizedName = values.name.trim();
