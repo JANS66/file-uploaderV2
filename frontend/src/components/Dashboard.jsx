@@ -10,7 +10,7 @@ import {
 } from "@mantine/core";
 import { CreateFolderModal } from "./CreateFolderModal";
 import { IconFolderPlus } from "@tabler/icons-react";
-import { RootDirectory } from "./RootDirectory";
+import { DirectoryView } from "./DirectoryView";
 import { FileUploader } from "./FileUploader";
 import { useState, useEffect } from "react";
 
@@ -18,18 +18,26 @@ export function Dashboard() {
   const [uploading, setUploading] = useState(false);
   const [modalOpened, setModalOpened] = useState(false);
 
+  // Folder navigation state
+  const [currentFolder, setCurrentFolder] = useState(null); // null = Root
+  const [breadcrumbs, setBreadcrumbs] = useState([{ id: null, name: "Home" }]);
+
   // /api/contents state
   const [folders, setFolders] = useState([]);
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Initial load: Fetch root directory contents ONCE on mount
+  // Fetch directory contents whenever currentFolder changes
   useEffect(() => {
     let isMounted = true;
 
     async function loadContents() {
       try {
-        const res = await fetch("http://localhost:5000/api/contents", {
+        const url = currentFolder
+          ? `http://localhost:5000/api/contents?folderId=${currentFolder.id}`
+          : "http://localhost:5000/api/contents";
+
+        const res = await fetch(url, {
           method: "GET",
           credentials: "include",
         });
@@ -53,7 +61,7 @@ export function Dashboard() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [currentFolder]);
 
   const handleUploadFiles = async (files) => {
     const formData = new FormData();
@@ -104,6 +112,20 @@ export function Dashboard() {
     }
   };
 
+  // Navigation handlers
+  const handleOpenFolder = (folder) => {
+    setCurrentFolder(folder);
+    setBreadcrumbs((prev) => [...prev, { id: folder.id, name: folder.name }]);
+  };
+
+  const handleNavigateBreadcrumb = (index) => {
+    const targetCrumb = breadcrumbs[index];
+    setBreadcrumbs((prev) => prev.slice(0, index + 1));
+    setCurrentFolder(
+      targetCrumb.id ? { id: targetCrumb.id, name: targetCrumb.name } : null,
+    );
+  };
+
   return (
     <Container size="md" py="xl">
       <Stack gap="lg">
@@ -135,12 +157,12 @@ export function Dashboard() {
             <Loader size="md" />
           </Center>
         ) : (
-          <RootDirectory
+          <DirectoryView
             folders={folders}
             files={files}
-            onOpenFolder={(folder) =>
-              console.log("Navigating to folder:", folder.name)
-            }
+            breadcrumbs={breadcrumbs}
+            onNavigateBreadcrumb={handleNavigateBreadcrumb}
+            onOpenFolder={handleOpenFolder}
             onDeleteFolder={(id) =>
               setFolders((prev) => prev.filter((f) => f.id !== id))
             }
