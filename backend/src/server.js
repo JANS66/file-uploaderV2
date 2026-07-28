@@ -98,7 +98,7 @@ const idParamSchema = z.object({
 });
 
 // Middleware to authenticate JWT from httpOnly cookie
-const authenticateToken = (req, res, next) => {
+const authenticateToken = async (req, res, next) => {
   const token = req.cookies.token;
 
   if (!token) {
@@ -107,7 +107,22 @@ const authenticateToken = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
+
+    // Verify the user actually exists in DB
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: { id: true },
+    });
+
+    if (!user) {
+      // Clear invalid cookie if user no longer exists in DB
+      res.clearCookie("token");
+      return res
+        .status(401)
+        .json({ message: "User account no longer exists." });
+    }
+
+    req.user = user;
     next();
   } catch (error) {
     return res.status(401).json({ message: "Invalid or expired token" });
