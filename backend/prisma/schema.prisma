@@ -43,10 +43,10 @@ model Folder {
 model File {
   id           String @id @default(uuid())
   originalName String
-  storedName   String @unique
+  storedName   String @unique // Stores Cloudinary public_id (useful for file deletion!)
   mimeType     String
   size         Int // File size in bytes
-  path         String // Storage path on disk/server
+  url          String // Cloudinary url
 
   // Relation to User
   userId String

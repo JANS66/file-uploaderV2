@@ -10,6 +10,8 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
+import { v2 as cloudinary } from "cloudinary";
+import { CloudinaryStorage } from "multer-storage-cloudinary";
 
 const app = express();
 
@@ -112,22 +114,26 @@ const authenticateToken = (req, res, next) => {
   }
 };
 
-// Ensure uploads folder exists
-const uploadDir = path.join(process.cwd(), "uploads");
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+// Configure Cloudinary SDK
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
-// Configure Multer Disk Storage
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir); // Save files in the uploads/ directory
-  },
-  filename: (req, file, cb) => {
-    // Generate unique filename to prevent overwriting existing files
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname);
-    cb(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
+// Configure Multer to upload straight to Cloudinary
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: async (req, file) => {
+    // Determine target resource_type based on MIME type
+    // Cloudinary treats PDFs and ZIPs as "raw", and PNG/JPG as "image" or "auto"
+    const isImage = file.mimetype.startsWith("image/");
+
+    return {
+      folder: "file-uploader-v2", // Cloudinary folder name
+      resource_type: isImage ? "image" : "raw",
+      public_id: `${Date.now()}-${Math.round(Math.random() * 1e9)}`,
+    };
   },
 });
 
@@ -345,15 +351,15 @@ app.post(
       // Prepare file records for batch database insert
       const fileData = req.files.map((file) => ({
         originalName: file.originalname,
-        storedName: file.filename,
+        storedName: file.filename, // Cloudinary public_id
         mimeType: file.mimetype,
         size: file.size,
-        path: file.path,
+        url: file.path, // Cloudinary URL
         userId: userId,
         folderId: targetFolderId,
       }));
 
-      // Use createManyAndReturn to fetch full database objects with IDs & timestamps
+      // Create records in DB and return saved instances
       const createdFiles = await prisma.file.createManyAndReturn({
         data: fileData,
       });
