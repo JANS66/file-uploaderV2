@@ -91,8 +91,8 @@ const updateFolderSchema = z.object({
     .max(255, "Folder name is too long."),
 });
 
-const folderIdParamSchema = z.object({
-  id: z.string().uuid("Invalid folder ID format."),
+const idParamSchema = z.object({
+  id: z.string().uuid("Invalid ID format."),
 });
 
 // Middleware to authenticate JWT from httpOnly cookie
@@ -160,6 +160,25 @@ const upload = multer({
     fileSize: 10 * 1024 * 1024, // 10MB limit per file
   },
 });
+
+// Helper function to recursively collect all nested subfolder IDs
+async function getAllSubfolderIds(folderId, userId) {
+  let ids = [folderId];
+
+  // Find children
+  const children = await prisma.folder.findMany({
+    where: { folderId, userId },
+    select: { id: true },
+  });
+
+  // Recursively fetch nested children
+  for (const child of children) {
+    const nestedIds = await getAllSubfolderIds(child.id, userId);
+    ids = ids.concat(nestedIds);
+  }
+
+  return ids;
+}
 
 app.post("/api/signup", async (req, res) => {
   try {
@@ -430,7 +449,7 @@ app.get("/api/contents", authenticateToken, async (req, res) => {
 app.put("/api/folders/:id", authenticateToken, async (req, res) => {
   try {
     // Validate route parameter
-    const paramResult = folderIdParamSchema.safeParse(req.params);
+    const paramResult = idParamSchema.safeParse(req.params);
     if (!paramResult.success) {
       return res
         .status(400)
@@ -477,6 +496,110 @@ app.put("/api/folders/:id", authenticateToken, async (req, res) => {
 
     console.error("Folder update error:", error);
     return res.status(500).json({ message: "Failed to update folder." });
+  }
+});
+
+app.delete("/api/files/:id", authenticateToken, async (req, res) => {
+  try {
+    const paramResult = idParamSchema.safeParse(req.params);
+    if (!paramResult.success) {
+      return res
+        .status(400)
+        .json({ message: paramResult.error.errors[0].message });
+    }
+
+    const { id } = paramResult.data;
+    const userId = req.user.userId;
+
+    const file = await prisma.file.findFirst({
+      where: { id, userId },
+    });
+
+    if (!file) {
+      return res.status(404).json({ message: "File not found." });
+    }
+
+    // Remove record from database
+    await prisma.file.delete({
+      where: { id },
+    });
+
+    // Remove physical file from disk
+    if (file.path) {
+      try {
+        fs.unlinkSync(file.path);
+      } catch (fsErr) {
+        console.warn(
+          `Physical file not found on disk at ${file.path}:`,
+          fsErr.message,
+        );
+      }
+    }
+
+    return res.status(200).json({ message: "File deleted successfully." });
+  } catch (error) {
+    console.error("File deletion error:", error);
+    return res.status(500).json({ message: "Failed to delete file." });
+  }
+});
+
+app.delete("/api/folders/:id", authenticateToken, async (req, res) => {
+  try {
+    const paramResult = idParamSchema.safeParse(req.params);
+    if (!paramResult.success) {
+      return res
+        .status(400)
+        .json({ message: paramResult.error.errors[0].message });
+    }
+
+    const { id } = paramResult.data;
+    const userId = req.user.userId;
+
+    // Verify target folder exists and belongs to user
+    const folder = await prisma.folder.findFirst({
+      where: { id, userId },
+    });
+
+    if (!folder) {
+      return res.status(404).json({ message: "Folder not found." });
+    }
+
+    // Get target folder ID + all nested child folder IDs
+    const allFolderIds = await getAllSubfolderIds(id, userId);
+
+    // Find all physical file paths stored in any of these folders
+    const filesToDelete = await prisma.file.findMany({
+      where: {
+        userId,
+        folderId: { in: allFolderIds },
+      },
+      select: { path: true },
+    });
+
+    // Delete the parent folder from DB
+    await prisma.folder.delete({
+      where: { id },
+    });
+
+    // Clean up physical files from disk asynchronously
+    await Promise.allSettled(
+      filesToDelete.map(async (file) => {
+        if (file.path) {
+          try {
+            fs.unlinkSync(file.path);
+          } catch (err) {
+            console.warn(`Could not remove file at ${file.path}:`, err.message);
+          }
+        }
+      }),
+    );
+
+    return res
+      .status(200)
+      .json({ message: "Folder and all contents deleted successfully." });
+  } catch (error) {
+    console.error("Folder deletion error:", error);
+    return res.status(500).json({ message: "Failed to delete folder." });
   }
 });
 

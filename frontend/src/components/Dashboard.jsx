@@ -138,6 +138,44 @@ export function Dashboard() {
     );
   };
 
+  const handleDeleteFolder = async (folderId) => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/folders/${folderId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to delete folder");
+      }
+
+      // Remove deleted folder from local state
+      setFolders((prev) => prev.filter((f) => f.id !== folderId));
+    } catch (err) {
+      console.error("Error deleting folder:", err);
+    }
+  };
+
+  const handleDeleteFile = async (fileId) => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/files/${fileId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to delete file");
+      }
+
+      // Remove deleted file from local state
+      setFiles((prev) => prev.filter((f) => f.id !== fileId));
+    } catch (err) {
+      console.error("Error deleting file:", err);
+    }
+  };
+
   const handleEditFolder = async (folderId, newName) => {
     const response = await fetch(
       `http://localhost:5000/api/folders/${folderId}`,
@@ -205,12 +243,8 @@ export function Dashboard() {
             onNavigateBreadcrumb={handleNavigateBreadcrumb}
             onOpenFolder={handleOpenFolder}
             onEditFolder={(folder) => setEditingFolder(folder)} // Open edit modal
-            onDeleteFolder={(id) =>
-              setFolders((prev) => prev.filter((f) => f.id !== id))
-            }
-            onDeleteFile={(id) =>
-              setFiles((prev) => prev.filter((f) => f.id !== id))
-            }
+            onDeleteFolder={handleDeleteFolder}
+            onDeleteFile={handleDeleteFile}
           />
         )}
 
