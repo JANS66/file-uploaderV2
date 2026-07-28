@@ -110,7 +110,7 @@ const authenticateToken = async (req, res, next) => {
 
     // Verify the user actually exists in DB
     const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
+      where: { id: decoded.id },
       select: { id: true },
     });
 
@@ -259,7 +259,7 @@ app.post("/api/signup", async (req, res) => {
     });
 
     // Generate a JWT Token
-    const token = jwt.sign({ userId: newUser.id }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ id: newUser.id }, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
 
@@ -313,7 +313,7 @@ app.post("/api/login", async (req, res) => {
     }
 
     // Generate JWT
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
 
@@ -343,7 +343,7 @@ app.post("/api/login", async (req, res) => {
 app.get("/api/status", authenticateToken, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
-      where: { id: req.user.userId },
+      where: { id: req.user.id },
       select: { id: true, name: true, email: true },
     });
 
@@ -379,10 +379,8 @@ app.post(
         return res.status(400).json({ message: "No files uploaded." });
       }
 
-      const userId = req.user.userId;
-      const rawFolderId = req.body.folderId;
-      const targetFolderId =
-        rawFolderId && rawFolderId !== "null" ? rawFolderId : null;
+      const userId = req.user.id;
+      const folderId = req.body.folderId || null;
 
       // Prepare file records for batch database insert
       const fileData = req.files.map((file) => ({
@@ -392,7 +390,7 @@ app.post(
         size: file.size,
         url: file.path, // Cloudinary URL
         userId: userId,
-        folderId: targetFolderId,
+        folderId: folderId,
       }));
 
       // Create records in DB and return saved instances
@@ -422,7 +420,7 @@ app.post("/api/folders", authenticateToken, async (req, res) => {
     }
 
     const { name, folderId } = parseResult.data;
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     // Persist folder in PostgreSQL and store the returned record
     const createdFolder = await prisma.folder.create({
@@ -463,7 +461,7 @@ app.get("/api/contents", authenticateToken, async (req, res) => {
 
     // targetFolderId is guaranteed to be null OR a valid UUID string
     const { folderId: targetFolderId } = parseResult.data;
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     const [folders, files] = await Promise.all([
       // Fetch folders where folderId === targetFolderId
@@ -508,7 +506,7 @@ app.put("/api/folders/:id", authenticateToken, async (req, res) => {
 
     const { id } = paramResult.data;
     const { name } = bodyResult.data;
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     // Ensure the folder exists and belongs to the authenticated user
     const existingFolder = await prisma.folder.findFirst({
@@ -551,7 +549,7 @@ app.delete("/api/files/:id", authenticateToken, async (req, res) => {
     }
 
     const { id } = paramResult.data;
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     const file = await prisma.file.findFirst({
       where: { id, userId },
@@ -586,7 +584,7 @@ app.delete("/api/folders/:id", authenticateToken, async (req, res) => {
     }
 
     const { id } = paramResult.data;
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     // Verify target folder exists and belongs to user
     const folder = await prisma.folder.findFirst({
@@ -641,7 +639,7 @@ app.get("/api/files/:id/download", authenticateToken, async (req, res) => {
     }
 
     const { id } = paramResult.data;
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     // Fetch file and verify user ownership
     const file = await prisma.file.findFirst({
