@@ -201,6 +201,27 @@ async function getAllSubfolderIds(folderId, userId) {
   return ids;
 }
 
+// Helper function to delete a single file from Cloudinary
+async function deleteFromCloudinary(storedName, mimeType) {
+  if (!storedName) return;
+
+  // Cloudinary treats images as 'image' and PDFs/ZIPs ad 'raw'
+  const isImage = mimeType && mimeType.startsWith("image/");
+  const resourceType = isImage ? "image" : "raw";
+
+  try {
+    const result = await cloudinary.uploader.destroy(storedName, {
+      resource_type: resourceType,
+    });
+    return result;
+  } catch (err) {
+    console.warn(
+      `Failed to delete Cloudinary asset ${storedName}:`,
+      err.message,
+    );
+  }
+}
+
 app.post("/api/signup", async (req, res) => {
   try {
     // Validate and Sanitize Input Data
@@ -545,17 +566,8 @@ app.delete("/api/files/:id", authenticateToken, async (req, res) => {
       where: { id },
     });
 
-    // Remove physical file from disk
-    if (file.path) {
-      try {
-        fs.unlinkSync(file.path);
-      } catch (fsErr) {
-        console.warn(
-          `Physical file not found on disk at ${file.path}:`,
-          fsErr.message,
-        );
-      }
-    }
+    // Remove file asset from Cloudinary
+    await deleteFromCloudinary(file.storedName, file.mimeType);
 
     return res.status(200).json({ message: "File deleted successfully." });
   } catch (error) {
@@ -588,31 +600,26 @@ app.delete("/api/folders/:id", authenticateToken, async (req, res) => {
     // Get target folder ID + all nested child folder IDs
     const allFolderIds = await getAllSubfolderIds(id, userId);
 
-    // Find all physical file paths stored in any of these folders
+    // Select storedName (public_id) and mimeType for all nested files
     const filesToDelete = await prisma.file.findMany({
       where: {
         userId,
         folderId: { in: allFolderIds },
       },
-      select: { path: true },
+      select: { storedName: true, mimeType: true },
     });
 
     // Delete the parent folder from DB
+    // (Prisma onDelete: Cascade automatically deletes nested subfolder and file records)
     await prisma.folder.delete({
       where: { id },
     });
 
-    // Clean up physical files from disk asynchronously
+    // Clean up physical assets from Cloudinary in parallel
     await Promise.allSettled(
-      filesToDelete.map(async (file) => {
-        if (file.path) {
-          try {
-            fs.unlinkSync(file.path);
-          } catch (err) {
-            console.warn(`Could not remove file at ${file.path}:`, err.message);
-          }
-        }
-      }),
+      filesToDelete.map((file) =>
+        deleteFromCloudinary(file.storedName, file.mimeType),
+      ),
     );
 
     return res
