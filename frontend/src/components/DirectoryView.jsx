@@ -40,6 +40,7 @@ export function DirectoryView({
   onEditFolder,
   onDeleteFolder,
   onDeleteFile,
+  onDownloadFile,
 }) {
   const isEmpty = folders.length === 0 && files.length === 0;
 
@@ -193,10 +194,7 @@ export function DirectoryView({
                     <Menu.Dropdown>
                       <Menu.Item
                         leftSection={<IconDownload size={14} />}
-                        component="a"
-                        href={`http://localhost:5000/uploads/${file.storedName}`}
-                        target="_blank"
-                        download
+                        onClick={() => onDownloadFile(file.id)}
                       >
                         Download
                       </Menu.Item>

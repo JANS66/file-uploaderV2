@@ -205,6 +205,11 @@ export function Dashboard() {
     }
   };
 
+  const handleDownloadFile = (fileId) => {
+    const downloadUrl = `http://localhost:5000/api/files/${fileId}/download`;
+    window.open(downloadUrl, "_blank");
+  };
+
   return (
     <Container size="md" py="xl">
       <Stack gap="lg">
@@ -245,6 +250,7 @@ export function Dashboard() {
             onEditFolder={(folder) => setEditingFolder(folder)} // Open edit modal
             onDeleteFolder={handleDeleteFolder}
             onDeleteFile={handleDeleteFile}
+            onDownloadFile={handleDownloadFile}
           />
         )}
 

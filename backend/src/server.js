@@ -603,6 +603,41 @@ app.delete("/api/folders/:id", authenticateToken, async (req, res) => {
   }
 });
 
+app.get("/api/files/:id/download", authenticateToken, async (req, res) => {
+  try {
+    const paramResult = idParamSchema.safeParse(req.params);
+    if (!paramResult.success) {
+      return res
+        .status(400)
+        .json({ message: paramResult.error.errors[0].message });
+    }
+
+    const { id } = paramResult.data;
+    const userId = req.user.userId;
+
+    // Fetch file and verify user ownership
+    const file = await prisma.file.findFirst({
+      where: { id, userId },
+    });
+
+    if (!file) {
+      return res.status(404).json({ message: "File not found." });
+    }
+
+    // Trigger native file download with original filename
+    // res.download(path, filename) sets 'Content-Disposition: attachment; filename="originalName.ext"'
+    return res.download(file.path, file.originalName, (err) => {
+      if (err && !res.headersSent) {
+        console.error("Error sending file:", err);
+        return res.status(500).json({ message: "Could not download file." });
+      }
+    });
+  } catch (error) {
+    console.error("Download error:", error);
+    return res.status(500).json({ message: "Failed to process download." });
+  }
+});
+
 // Multer Error Handling Middleware
 app.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {
