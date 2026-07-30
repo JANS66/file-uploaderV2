@@ -110,6 +110,11 @@ const shareQuerySchema = z.object({
   folderId: z.string().uuid("Invalid folder ID format.").optional(),
 });
 
+const shareFileDownloadParamsSchema = z.object({
+  token: z.string().trim().min(1, "Share token is required."),
+  fileId: z.string().uuid("Invalid file ID format."),
+});
+
 // Middleware to authenticate JWT from httpOnly cookie
 const authenticateToken = async (req, res, next) => {
   const token = req.cookies.token;
@@ -851,6 +856,81 @@ app.get("/api/shares/:token", async (req, res) => {
   } catch (error) {
     console.error("Error feteching shared contents:", error);
     return res.status(500).json({ message: "Failed to load shared contents." });
+  }
+});
+
+app.get("/api/shares/:token/files/:fileId/download", async (req, res) => {
+  try {
+    // Sanitize and validate params
+    const paramsResult = shareFileDownloadParamsSchema.safeParse(req.params);
+    if (!paramsResult.success) {
+      return res
+        .status(400)
+        .json({ message: paramsResult.error.errors[0].message });
+    }
+
+    const { token, fileId } = paramsResult.data;
+
+    // Find share record and owner
+    const share = await prisma.folderShare.findUnique({
+      where: { token },
+      include: {
+        folder: true,
+      },
+    });
+
+    if (!share) {
+      return res
+        .status(404)
+        .json({ message: "Share link is invalid or does not exist." });
+    }
+
+    // Check expiration
+    if (share.expiresAt && new Date() > new Date(share.expiresAt)) {
+      return res.status(410).json({ message: "This share link has expired." });
+    }
+
+    // Find requested file record
+    const file = await prisma.file.findUnique({
+      where: { id: fileId },
+    });
+
+    if (!file) {
+      return res.status(404).json({ message: "File not found." });
+    }
+
+    // Ensure file belongs to the shared folder hierarchy
+    const allowedFolderIds = await getAllSubfolderIds(
+      share.folderId,
+      share.folder.userId,
+    );
+
+    if (!file.folderId || !allowedFolderIds.includes(file.folderId)) {
+      return res
+        .status(403)
+        .json({ message: "Access denied: File is outside shared scope." });
+    }
+
+    // Extract base filename without extension to avoid double extensions
+    const parsedPath = path.parse(file.originalName);
+    const fileNameWithoutExt = parsedPath.name;
+
+    // Determine Cloudinary resource_type
+    const isImage = file.mimeType && file.mimeType.startsWith("image/");
+    const resourceType = isImage ? "image" : "raw";
+
+    // Generate Cloudinary URL with attachment flag
+    const downloadUrl = cloudinary.url(file.storedName, {
+      resource_type: resourceType,
+      flags: `attachment:${fileNameWithoutExt}`,
+      secure: true,
+    });
+
+    // Redirect directly to Cloudinary CDN
+    return res.redirect(downloadUrl);
+  } catch (error) {
+    console.error("Shared download error:", error);
+    return res.status(500).json({ message: "Failed to process download." });
   }
 });
 
