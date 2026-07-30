@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { Loader, Center } from "@mantine/core";
-import { useAuth } from "./context/AuthContext";
+import { useAuth } from "./context/useAuth";
 import { SignUpForm } from "./components/SignUpForm";
 import { LoginForm } from "./components/LoginForm";
 import { Header } from "./components/Header";

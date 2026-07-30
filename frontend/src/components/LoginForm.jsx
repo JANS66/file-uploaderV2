@@ -13,7 +13,7 @@ import {
 import { useForm } from "@mantine/form";
 import { IconAlertCircle } from "@tabler/icons-react";
 import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/useAuth";
 
 export function LoginForm() {
   const [serverError, setServerError] = useState("");
