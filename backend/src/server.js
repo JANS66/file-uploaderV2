@@ -650,14 +650,23 @@ app.get("/api/files/:id/download", authenticateToken, async (req, res) => {
       return res.status(404).json({ message: "File not found." });
     }
 
-    // Trigger native file download with original filename
-    // res.download(path, filename) sets 'Content-Disposition: attachment; filename="originalName.ext"'
-    return res.download(file.path, file.originalName, (err) => {
-      if (err && !res.headersSent) {
-        console.error("Error sending file:", err);
-        return res.status(500).json({ message: "Could not download file." });
-      }
+    // EXtract base filename without extension to avoid "filename.jpg.jpg"
+    const parsedPath = path.parse(file.originalName);
+    const fileNameWithoutExt = parsedPath.name; // e.g. "my-vacation-photo"
+
+    // Determine resource_type ("image" or "raw")
+    const isImage = file.mimeType && file.mimeType.startsWith("image/");
+    const resourceType = isImage ? "image" : "raw";
+
+    // Generate Cloudinary URL with custom attachment name
+    const downloadUrl = cloudinary.url(file.storedName, {
+      resource_type: resourceType,
+      flags: `attachment:${fileNameWithoutExt}`, // Forces browser download with custom name
+      secure: true,
     });
+
+    // Redirect browser directly to Cloudinary CDN
+    return res.redirect(downloadUrl);
   } catch (error) {
     console.error("Download error:", error);
     return res.status(500).json({ message: "Failed to process download." });
