@@ -16,9 +16,11 @@ import { useState, useEffect } from "react";
 import { EditFolderModal } from "./EditFolderModal";
 import { ShareFolderModal } from "./ShareFolderModal";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
 export function Dashboard() {
   const [uploading, setUploading] = useState(false);
-  const [modalOpened, setModalOpened] = useState(false);
+  const [createFolderModal, setCreateFolderModal] = useState(false);
   const [editingFolder, setEditingFolder] = useState(null); // Tracks folder selected for edit
 
   // Folder navigation state
@@ -40,8 +42,8 @@ export function Dashboard() {
     async function loadContents() {
       try {
         const url = currentFolder
-          ? `http://localhost:5000/api/contents?folderId=${currentFolder.id}`
-          : "http://localhost:5000/api/contents";
+          ? `${API_BASE_URL}/api/contents?folderId=${currentFolder.id}`
+          : `${API_BASE_URL}/api/contents`;
 
         const res = await fetch(url, {
           method: "GET",
@@ -80,7 +82,7 @@ export function Dashboard() {
 
     setUploading(true);
     try {
-      const res = await fetch("http://localhost:5000/api/files/upload", {
+      const res = await fetch(`${API_BASE_URL}/api/files/upload`, {
         method: "POST",
         credentials: "include",
         body: formData,
@@ -107,7 +109,7 @@ export function Dashboard() {
       folderId: currentFolder?.id || null, // Attach parent folderId context
     };
 
-    const response = await fetch("http://localhost:5000/api/folders", {
+    const response = await fetch(`${API_BASE_URL}/api/folders`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -130,11 +132,13 @@ export function Dashboard() {
 
   // Navigation handlers
   const handleOpenFolder = (folder) => {
+    setLoading(true);
     setCurrentFolder(folder);
     setBreadcrumbs((prev) => [...prev, { id: folder.id, name: folder.name }]);
   };
 
   const handleNavigateBreadcrumb = (index) => {
+    setLoading(true);
     const targetCrumb = breadcrumbs[index];
     setBreadcrumbs((prev) => prev.slice(0, index + 1));
     setCurrentFolder(
@@ -144,7 +148,7 @@ export function Dashboard() {
 
   const handleDeleteFolder = async (folderId) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/folders/${folderId}`, {
+      const res = await fetch(`${API_BASE_URL}/api/folders/${folderId}`, {
         method: "DELETE",
         credentials: "include",
       });
@@ -163,7 +167,7 @@ export function Dashboard() {
 
   const handleDeleteFile = async (fileId) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/files/${fileId}`, {
+      const res = await fetch(`${API_BASE_URL}/api/files/${fileId}`, {
         method: "DELETE",
         credentials: "include",
       });
@@ -181,17 +185,14 @@ export function Dashboard() {
   };
 
   const handleEditFolder = async (folderId, newName) => {
-    const response = await fetch(
-      `http://localhost:5000/api/folders/${folderId}`,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({ name: newName }),
+    const response = await fetch(`${API_BASE_URL}/api/folders/${folderId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
       },
-    );
+      credentials: "include",
+      body: JSON.stringify({ name: newName }),
+    });
 
     const data = await response.json();
     if (!response.ok) {
@@ -216,11 +217,15 @@ export function Dashboard() {
 
   // API Call to generate share token
   const handleGenerateShareLink = async (folderId, expiresIn) => {
-    const response = await fetch(`/api/folders/${folderId}/share`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ expiresIn }),
-    });
+    const response = await fetch(
+      `${API_BASE_URL}/api/folders/${folderId}/share`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ expiresIn }),
+      },
+    );
 
     if (!response.ok) {
       throw new Error("Failed to create share link");
@@ -247,7 +252,7 @@ export function Dashboard() {
           <Button
             variant="light"
             leftSection={<IconFolderPlus size={18} />}
-            onClick={() => setModalOpened(true)}
+            onClick={() => setCreateFolderModal(true)}
           >
             New Folder
           </Button>
@@ -278,8 +283,8 @@ export function Dashboard() {
 
         {/* Create Folder Modal */}
         <CreateFolderModal
-          opened={modalOpened}
-          onClose={() => setModalOpened(false)}
+          opened={createFolderModal}
+          onClose={() => setCreateFolderModal(false)}
           onCreateFolder={handleCreateFolder}
         />
 
