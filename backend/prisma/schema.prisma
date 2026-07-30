@@ -33,6 +33,8 @@ model Folder {
   // Relation to File
   files File[] // Relation: Folder has many files
 
+  shares FolderShare[] // Relation to shares
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -40,10 +42,19 @@ model Folder {
   @@unique([name, userId])
 }
 
+model FolderShare {
+  id        String    @id @default(uuid())
+  token     String    @unique // Unique string for public URL
+  folderId  String
+  folder    Folder    @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  expiresAt DateTime? // null = never expires
+  createdAt DateTime  @default(now())
+}
+
 model File {
   id           String @id @default(uuid())
   originalName String
-  storedName   String @unique // Stores Cloudinary public_id (useful for file deletion!)
+  storedName   String @unique // Stores Cloudinary public_id
   mimeType     String
   size         Int // File size in bytes
   url          String // Cloudinary url

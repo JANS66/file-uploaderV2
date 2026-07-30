@@ -12,6 +12,7 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 import { v2 as cloudinary } from "cloudinary";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
+import crypto from "crypto";
 
 const app = express();
 
@@ -95,6 +96,10 @@ const updateFolderSchema = z.object({
 
 const idParamSchema = z.object({
   id: z.string().uuid("Invalid ID format."),
+});
+
+const shareFolderSchema = z.object({
+  expiresIn: z.enum(["1h", "24h", "7d", "30d", "never"]),
 });
 
 // Middleware to authenticate JWT from httpOnly cookie
@@ -219,6 +224,24 @@ async function deleteFromCloudinary(storedName, mimeType) {
       `Failed to delete Cloudinary asset ${storedName}:`,
       err.message,
     );
+  }
+}
+
+function calculateExpiration(expiresIn) {
+  const now = new Date();
+  switch (expiresIn) {
+    case "1h":
+      return new Date(now.getTime() + 60 * 60 * 1000);
+    case "24h":
+      return new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    case "7d":
+      return new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    case "30d":
+      return new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    case "never":
+      return null;
+    default:
+      return new Date(now.getTime() + 24 * 60 * 60 * 1000);
   }
 }
 
@@ -670,6 +693,65 @@ app.get("/api/files/:id/download", authenticateToken, async (req, res) => {
   } catch (error) {
     console.error("Download error:", error);
     return res.status(500).json({ message: "Failed to process download." });
+  }
+});
+
+app.post("/api/folders/:id/share", authenticateToken, async (req, res) => {
+  try {
+    // Validate req.params.id
+    const paramResult = idParamSchema.safeParse(req.params);
+    if (!paramResult.success) {
+      return res
+        .status(400)
+        .json({ message: paramResult.error.errors[0].message });
+    }
+    const { id: folderId } = paramResult.data;
+
+    // Validate req.body.expiresIn
+    const bodyResult = shareFolderSchema.safeParse(req.body);
+    if (!bodyResult.success) {
+      return res
+        .status(400)
+        .json({ message: "Invalid expiration duration selected." });
+    }
+    const { expiresIn } = bodyResult.data;
+
+    // Verify user owns the folder
+    const folder = await prisma.folder.findFirst({
+      where: {
+        id: folderId,
+        userId: req.user.id,
+      },
+    });
+
+    if (!folder) {
+      return res
+        .status(404)
+        .json({ message: "Folder not found or unauthorized access." });
+    }
+
+    // Calculate expiration timestamp and generate share token
+    const expiresAt = calculateExpiration(expiresIn);
+    const shareToken = crypto.randomBytes(32).toString("hex");
+
+    // Store share record in DB
+    const shareRecord = await prisma.folderShare.create({
+      data: {
+        token: shareToken,
+        folderId: folder.id,
+        expiresAt: expiresAt,
+      },
+    });
+
+    // Return shareTOken to client
+    return res.status(201).json({
+      message: "Share link generated successfully",
+      shareToken: shareRecord.token,
+      expiresAt: shareRecord.expiresAt,
+    });
+  } catch (error) {
+    console.error("Error creating folder share:", error);
+    return res.status(500).json({ message: "Failed to generate share link." });
   }
 });
 
