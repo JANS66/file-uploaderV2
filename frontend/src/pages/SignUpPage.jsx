@@ -15,8 +15,9 @@ import {
   Container,
   Alert,
 } from "@mantine/core";
+const API_BASE_URL = import.meta.env.API_BASE_URL;
 
-export function SignUpForm() {
+export function SignUpPage() {
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState("");
 
@@ -56,7 +57,7 @@ export function SignUpForm() {
         password: values.password,
       };
 
-      const response = await fetch("http://localhost:5000/api/signup", {
+      const response = await fetch(`${API_BASE_URL}/api/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include", // Allows browser to save the httpOnly cookie

@@ -8,13 +8,13 @@ import {
   Loader,
   Center,
 } from "@mantine/core";
-import { CreateFolderModal } from "./CreateFolderModal";
+import { CreateFolderModal } from "../components/modals/CreateFolderModal";
 import { IconFolderPlus } from "@tabler/icons-react";
-import { DirectoryView } from "./DirectoryView";
-import { FileUploader } from "./FileUploader";
+import { DirectoryView } from "../components/files/DirectoryView";
+import { FileUploader } from "../components/files/FileUploader";
 import { useState, useEffect } from "react";
-import { EditFolderModal } from "./EditFolderModal";
-import { ShareFolderModal } from "./ShareFolderModal";
+import { EditFolderModal } from "../components/modals/EditFolderModal";
+import { ShareFolderModal } from "../components/modals/ShareFolderModal";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -211,7 +211,7 @@ export function Dashboard() {
   };
 
   const handleDownloadFile = (fileId) => {
-    const downloadUrl = `http://localhost:5000/api/files/${fileId}/download`;
+    const downloadUrl = `${API_BASE_URL}/api/files/${fileId}/download`;
     window.open(downloadUrl, "_blank");
   };
 

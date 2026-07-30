@@ -18,6 +18,7 @@ import {
   IconCloudUpload,
   IconAlertCircle,
 } from "@tabler/icons-react";
+import { formatFileSize, sanitizeFilename } from "../../utils/utils";
 
 // Config
 const MAX_SIZE_MB = 10;
@@ -29,13 +30,6 @@ const ALLOWED_TYPES = [
   "application/zip",
 ];
 
-// Helper to sanitize filenames for safe UI display
-const sanitizeFilename = (name) => {
-  return name
-    .replace(/[^a-zA-Z0-9.\-_]/g, "_") // Replace dangerous chars with "_"
-    .substring(0, 80); // Cap max length to 80 chars
-};
-
 export function FileUploader({ onUpload, isUploading }) {
   const [stagedFiles, setStagedFiles] = useState([]);
   const [errorMessage, setErrorMessage] = useState("");
@@ -46,11 +40,9 @@ export function FileUploader({ onUpload, isUploading }) {
 
     const newFiles = acceptedFiles.map((file) => ({
       file,
-      id: Math.random().toString(36).substring(2, 9),
+      id: crypto.randomUUID(),
       name: sanitizeFilename(file.name),
-      rawName: file.name,
-      size: (file.size / (1024 * 1024)).toFixed(2),
-      type: file.type || "Unknown",
+      size: formatFileSize(file.size),
     }));
 
     setStagedFiles((prev) => [...prev, ...newFiles]);
@@ -174,7 +166,7 @@ export function FileUploader({ onUpload, isUploading }) {
                         {item.name}
                       </Text>
                       <Text size="xs" c="dimmed">
-                        {item.size} MB
+                        {item.size}
                       </Text>
                     </div>
                   </Group>

@@ -11,7 +11,7 @@ import {
   Paper,
 } from "@mantine/core";
 import { IconAlertCircle } from "@tabler/icons-react";
-import { DirectoryView } from "../components/DirectoryView";
+import { DirectoryView } from "../components/files/DirectoryView";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 

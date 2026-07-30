@@ -7,7 +7,7 @@ import {
   Container,
 } from "@mantine/core";
 import { IconLogout, IconChevronDown } from "@tabler/icons-react";
-import { useAuth } from "../context/useAuth";
+import { useAuth } from "../../context/useAuth";
 
 export function Header() {
   const { user, logout } = useAuth();

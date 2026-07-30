@@ -1,11 +1,11 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { Loader, Center } from "@mantine/core";
 import { useAuth } from "./context/useAuth";
-import { SignUpForm } from "./components/SignUpForm";
-import { LoginForm } from "./components/LoginForm";
-import { Header } from "./components/Header";
-import { Dashboard } from "./components/Dashboard";
-import { SharedFolderPage } from "./components/ShareFolderPage";
+import { SignUpPage } from "./pages/SignUpPage";
+import { LoginPage } from "./pages/LoginPage";
+import { Header } from "./components/layout/Header";
+import { Dashboard } from "./pages/Dashboard";
+import { SharedFolderPage } from "./pages/ShareFolderPage";
 
 // Wrapper for protected routes (Dashboard)
 function ProtectedLayout({ children }) {
@@ -61,7 +61,7 @@ export default function App() {
         path="/signup"
         element={
           <PublicOnlyRoute>
-            <SignUpForm />
+            <SignUpPage />
           </PublicOnlyRoute>
         }
       />
@@ -69,7 +69,7 @@ export default function App() {
         path="/login"
         element={
           <PublicOnlyRoute>
-            <LoginForm />
+            <LoginPage />
           </PublicOnlyRoute>
         }
       />

@@ -1,14 +1,7 @@
 import { Modal, TextInput, Button, Group, Stack, Text } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { IconFolderPlus } from "@tabler/icons-react";
-
-// Helper to sanitize folder names
-const sanitizeFolderName = (name) => {
-  return name
-    .trim()
-    .replace(/[^a-zA-Z0-9.\-_ ]/g, "_") // Replace dangerous special chars with "_"
-    .substring(0, 50); // Cap at 50 chars
-};
+import { sanitizeFolderName } from "../../utils/utils";
 
 export function CreateFolderModal({ opened, onClose, onCreateFolder }) {
   const form = useForm({

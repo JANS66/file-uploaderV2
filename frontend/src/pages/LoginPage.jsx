@@ -14,8 +14,9 @@ import { useForm } from "@mantine/form";
 import { IconAlertCircle } from "@tabler/icons-react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
+const API_BASE_URL = import.meta.env.API_BASE_URL;
 
-export function LoginForm() {
+export function LoginPage() {
   const [serverError, setServerError] = useState("");
   const [loading, setLoading] = useState(false);
   const { handleAuthSuccess } = useAuth();
@@ -39,7 +40,7 @@ export function LoginForm() {
     setServerError("");
 
     try {
-      const response = await fetch("http://localhost:5000/api/login", {
+      const response = await fetch(`${API_BASE_URL}/api/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

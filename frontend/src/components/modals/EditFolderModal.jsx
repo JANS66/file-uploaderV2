@@ -1,6 +1,7 @@
 import { Modal, TextInput, Button, Group, Stack } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useEffect } from "react";
+import { sanitizeFolderName } from "../../utils/utils";
 
 export function EditFolderModal({ opened, onClose, folder, onRenameFolder }) {
   // Initialize Mantine form with validation rules
@@ -10,9 +11,13 @@ export function EditFolderModal({ opened, onClose, folder, onRenameFolder }) {
     },
     validate: {
       name: (value) => {
-        const trimmed = value?.trim();
-        if (!trimmed) return "Folder name cannot be empty";
-        if (trimmed.length > 255) return "Folder name is too long";
+        const clean = sanitizeFolderName(value);
+        if (!clean) return "Folder name cannot be empty";
+        if (clean.length < 2)
+          return "Folder name must be at least 2 characters long";
+        if (/[/\\?%*:|"<>]/g.test(value)) {
+          return 'Folder name cannot contain characters like / \\ ? * : | " < >';
+        }
         return null;
       },
     },
