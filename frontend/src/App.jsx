@@ -5,6 +5,7 @@ import { SignUpForm } from "./components/SignUpForm";
 import { LoginForm } from "./components/LoginForm";
 import { Header } from "./components/Header";
 import { Dashboard } from "./components/Dashboard";
+import { SharedFolderPage } from "./components/ShareFolderPage";
 
 // Wrapper for protected routes (Dashboard)
 function ProtectedLayout({ children }) {
@@ -30,7 +31,7 @@ function ProtectedLayout({ children }) {
   );
 }
 
-// Wrapper for public-only routes (Signup/Login)
+// Wrapper for public only routes (Signup/Login)
 function PublicOnlyRoute({ children }) {
   const { user, loading } = useAuth();
 
@@ -73,6 +74,9 @@ export default function App() {
         }
       />
 
+      {/* Public Share Route (Accessible by ANYONE logged in or out) */}
+      <Route path="/share/:shareToken" element={<SharedFolderPage />} />
+
       {/* Protected Route */}
       <Route
         path="/dashboard"
@@ -83,7 +87,7 @@ export default function App() {
         }
       />
 
-      {/* Catch-all route */}
+      {/* Catch all route */}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );

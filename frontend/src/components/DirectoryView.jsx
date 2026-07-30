@@ -43,6 +43,7 @@ export function DirectoryView({
   onDeleteFile,
   onDownloadFile,
   onShareFolder,
+  readOnly = false,
 }) {
   const isEmpty = folders.length === 0 && files.length === 0;
 
@@ -125,49 +126,51 @@ export function DirectoryView({
                   </Text>
                 </Table.Td>
                 <Table.Td style={{ textAlign: "right" }}>
-                  <Menu position="bottom-end" shadow="md">
-                    <Menu.Target>
-                      <ActionIcon
-                        variant="subtle"
-                        color="gray"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <IconDotsVertical size={16} />
-                      </ActionIcon>
-                    </Menu.Target>
-                    <Menu.Dropdown>
-                      {/* Edit Menu Item */}
-                      <Menu.Item
-                        leftSection={<IconEdit size={14} />}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onEditFolder(folder);
-                        }}
-                      >
-                        Edit
-                      </Menu.Item>
-                      {/* Delete Menu Item */}
-                      <Menu.Item
-                        leftSection={<IconTrash size={14} />}
-                        color="red"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDeleteFolder(folder.id);
-                        }}
-                      >
-                        Delete
-                      </Menu.Item>
-                      <Menu.Item
-                        leftSection={<IconShare size={14} />}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onShareFolder(folder);
-                        }}
-                      >
-                        Share Folder
-                      </Menu.Item>
-                    </Menu.Dropdown>
-                  </Menu>
+                  {!readOnly && (
+                    <Menu position="bottom-end" shadow="md">
+                      <Menu.Target>
+                        <ActionIcon
+                          variant="subtle"
+                          color="gray"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <IconDotsVertical size={16} />
+                        </ActionIcon>
+                      </Menu.Target>
+                      <Menu.Dropdown>
+                        {/* Edit Menu Item */}
+                        <Menu.Item
+                          leftSection={<IconEdit size={14} />}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEditFolder(folder);
+                          }}
+                        >
+                          Edit
+                        </Menu.Item>
+                        {/* Delete Menu Item */}
+                        <Menu.Item
+                          leftSection={<IconTrash size={14} />}
+                          color="red"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteFolder(folder.id);
+                          }}
+                        >
+                          Delete
+                        </Menu.Item>
+                        <Menu.Item
+                          leftSection={<IconShare size={14} />}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onShareFolder(folder);
+                          }}
+                        >
+                          Share Folder
+                        </Menu.Item>
+                      </Menu.Dropdown>
+                    </Menu>
+                  )}
                 </Table.Td>
               </Table.Tr>
             ))}
@@ -212,16 +215,18 @@ export function DirectoryView({
                       >
                         Download
                       </Menu.Item>
-                      <Menu.Item
-                        color="red"
-                        leftSection={<IconTrash size={14} />}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDeleteFile(file.id);
-                        }}
-                      >
-                        Delete
-                      </Menu.Item>
+                      {!readOnly && (
+                        <Menu.Item
+                          color="red"
+                          leftSection={<IconTrash size={14} />}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteFile(file.id);
+                          }}
+                        >
+                          Delete
+                        </Menu.Item>
+                      )}
                     </Menu.Dropdown>
                   </Menu>
                 </Table.Td>
