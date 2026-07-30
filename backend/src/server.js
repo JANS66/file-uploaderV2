@@ -102,6 +102,14 @@ const shareFolderSchema = z.object({
   expiresIn: z.enum(["1h", "24h", "7d", "30d", "never"]),
 });
 
+const shareParamsSchema = z.object({
+  token: z.string().trim().min(1, "Share token is required."),
+});
+
+const shareQuerySchema = z.object({
+  folderId: z.string().uuid("Invalid folder ID format.").optional(),
+});
+
 // Middleware to authenticate JWT from httpOnly cookie
 const authenticateToken = async (req, res, next) => {
   const token = req.cookies.token;
@@ -752,6 +760,97 @@ app.post("/api/folders/:id/share", authenticateToken, async (req, res) => {
   } catch (error) {
     console.error("Error creating folder share:", error);
     return res.status(500).json({ message: "Failed to generate share link." });
+  }
+});
+
+app.get("/api/shares/:token", async (req, res) => {
+  try {
+    // Sanitize and validate req.params
+    const paramsResult = shareParamsSchema.safeParse(req.params);
+    if (!paramsResult.success) {
+      return res
+        .status(400)
+        .json({ message: paramsResult.error.errors[0].message });
+    }
+    const { token } = paramsResult.data;
+
+    // Sanitize and validate req.query
+    const queryResult = shareQuerySchema.safeParse(req.query);
+    if (!queryResult.success) {
+      return res
+        .status(400)
+        .json({ message: queryResult.error.errors[0].message });
+    }
+    const requestedFolderId = queryResult.data.folderId || null;
+
+    // Look up the share record
+    const share = await prisma.folderShare.findUnique({
+      where: { token },
+      include: {
+        folder: true,
+      },
+    });
+
+    if (!share) {
+      return res
+        .status(404)
+        .json({ message: "Share link is invalid or does not exist." });
+    }
+
+    // Check expiration
+    if (share.expiresAt && new Date() > new Date(share.expiresAt)) {
+      return res.status(410).json({ message: "This share link has expired." });
+    }
+
+    let activeFolderId = share.folderId;
+
+    // Validate subfolder scope
+    if (requestedFolderId && requestedFolderId !== share.folderId) {
+      const allowedFolderIds = await getAllSubfolderIds(
+        share.folderId,
+        share.folder.userId,
+      );
+
+      if (!allowedFolderIds.includes(requestedFolderId)) {
+        return res
+          .status(403)
+          .json({ message: "Access denied: Folder is outside shared scope." });
+      }
+
+      activeFolderId = requestedFolderId;
+    }
+
+    // Fetch contents
+    const [folders, files] = await Promise.all([
+      prisma.folder.findMany({
+        where: { folderId: activeFolderId },
+        select: {
+          id: true,
+          name: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      }),
+      prisma.file.findMany({
+        where: { folderId: activeFolderId },
+        select: {
+          id: true,
+          originalName: true,
+          mimeType: true,
+          size: true,
+          createdAt: true,
+        },
+      }),
+    ]);
+
+    return res.status(200).json({
+      folderName: share.folder.name,
+      folders,
+      files,
+    });
+  } catch (error) {
+    console.error("Error feteching shared contents:", error);
+    return res.status(500).json({ message: "Failed to load shared contents." });
   }
 });
 
