@@ -14,6 +14,7 @@ import { DirectoryView } from "./DirectoryView";
 import { FileUploader } from "./FileUploader";
 import { useState, useEffect } from "react";
 import { EditFolderModal } from "./EditFolderModal";
+import { ShareFolderModal } from "./ShareFolderModal";
 
 export function Dashboard() {
   const [uploading, setUploading] = useState(false);
@@ -28,6 +29,9 @@ export function Dashboard() {
   const [folders, setFolders] = useState([]);
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Share Modal state
+  const [sharingFolder, setSharingFolder] = useState(null); // null = modal closed, object = open
 
   // Fetch directory contents whenever currentFolder changes
   useEffect(() => {
@@ -210,6 +214,23 @@ export function Dashboard() {
     window.open(downloadUrl, "_blank");
   };
 
+  // API Call to generate share token
+  const handleGenerateShareLink = async (folderId, expiresIn) => {
+    const response = await fetch(`/api/folders/${folderId}/share`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ expiresIn }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to create share link");
+    }
+
+    const data = await response.json();
+    // Return full shareable URL
+    return `${window.location.origin}/share/${data.shareToken}`;
+  };
+
   return (
     <Container size="md" py="xl">
       <Stack gap="lg">
@@ -251,6 +272,7 @@ export function Dashboard() {
             onDeleteFolder={handleDeleteFolder}
             onDeleteFile={handleDeleteFile}
             onDownloadFile={handleDownloadFile}
+            onShareFolder={(folder) => setSharingFolder(folder)}
           />
         )}
 
@@ -267,6 +289,13 @@ export function Dashboard() {
           onClose={() => setEditingFolder(null)}
           folder={editingFolder}
           onRenameFolder={handleEditFolder}
+        />
+
+        <ShareFolderModal
+          opened={Boolean(sharingFolder)}
+          onClose={() => setSharingFolder(null)}
+          folderId={sharingFolder?.id}
+          onGenerateLink={handleGenerateShareLink}
         />
       </Stack>
     </Container>

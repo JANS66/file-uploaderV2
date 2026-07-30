@@ -20,6 +20,7 @@ import {
   IconFolderOpen,
   IconDownload,
   IconChevronRight,
+  IconShare,
 } from "@tabler/icons-react";
 
 // Helper to format raw byte sizes into human readable strings
@@ -41,6 +42,7 @@ export function DirectoryView({
   onDeleteFolder,
   onDeleteFile,
   onDownloadFile,
+  onShareFolder,
 }) {
   const isEmpty = folders.length === 0 && files.length === 0;
 
@@ -155,6 +157,15 @@ export function DirectoryView({
                       >
                         Delete
                       </Menu.Item>
+                      <Menu.Item
+                        leftSection={<IconShare size={14} />}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onShareFolder(folder);
+                        }}
+                      >
+                        Share Folder
+                      </Menu.Item>
                     </Menu.Dropdown>
                   </Menu>
                 </Table.Td>
@@ -194,14 +205,20 @@ export function DirectoryView({
                     <Menu.Dropdown>
                       <Menu.Item
                         leftSection={<IconDownload size={14} />}
-                        onClick={() => onDownloadFile(file.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDownloadFile(file.id);
+                        }}
                       >
                         Download
                       </Menu.Item>
                       <Menu.Item
                         color="red"
                         leftSection={<IconTrash size={14} />}
-                        onClick={() => onDeleteFile(file.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteFile(file.id);
+                        }}
                       >
                         Delete
                       </Menu.Item>
