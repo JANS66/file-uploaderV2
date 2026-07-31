@@ -7,6 +7,14 @@ import { signupSchema, loginSchema } from "../schemas/auth.schema.js";
 
 const router = Router();
 
+const cookieOptions = {
+  httpOnly: true,
+  secure: true,
+  sameSite: "none",
+  path: "/",
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+};
+
 router.post("/signup", async (req, res) => {
   try {
     // Validate and Sanitize Input Data
@@ -49,12 +57,7 @@ router.post("/signup", async (req, res) => {
     });
 
     // Set token in secure httpOnly Cookie
-    res.cookie("token", token, {
-      httpOnly: true, // Prevents JavaScript (XSS) from reading the token
-      secure: true, // HTTPS only in production
-      sameSite: "none", // Protects against CSRF
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
-    });
+    res.cookie("token", token, cookieOptions);
 
     return res.status(201).json({
       message: "User created successfully!",
@@ -103,12 +106,7 @@ router.post("/login", async (req, res) => {
     });
 
     // Set httpOnly cookie
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie("token", token, cookieOptions);
 
     return res.json({
       message: "Login successful",
@@ -147,8 +145,9 @@ router.get("/status", authenticateToken, async (req, res) => {
 router.post("/logout", (req, res) => {
   res.clearCookie("token", {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    secure: true,
+    sameSite: "none",
+    path: "/",
   });
   return res.json({ message: "Logged out successfully" });
 });
