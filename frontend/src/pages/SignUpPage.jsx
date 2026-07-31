@@ -15,7 +15,7 @@ import {
   Container,
   Alert,
 } from "@mantine/core";
-const API_BASE_URL = import.meta.env.API_BASE_URL;
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 export function SignUpPage() {
   const [loading, setLoading] = useState(false);
