@@ -22,7 +22,8 @@ router.post("/signup", async (req, res) => {
 
     // If validation fails, return Zods clear error message back to the UI
     if (!parseResult.success) {
-      const firstErrorMessage = parseResult.error.errors[0].message;
+      const firstErrorMessage =
+        parseResult.error.issues[0]?.message || "Invalid input";
       return res.status(400).json({ message: firstErrorMessage });
     }
 
@@ -79,7 +80,8 @@ router.post("/login", async (req, res) => {
     const parseResult = loginSchema.safeParse(req.body);
 
     if (!parseResult.success) {
-      const firstErrorMessage = parseResult.error.errors[0].message;
+      const firstErrorMessage =
+        parseResult.error.issues[0]?.message || "Invalid input";
       return res.status(400).json({ message: firstErrorMessage });
     }
 

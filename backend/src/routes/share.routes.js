@@ -23,7 +23,7 @@ router.post("/folders/:id/share", authenticateToken, async (req, res) => {
     if (!paramResult.success) {
       return res
         .status(400)
-        .json({ message: paramResult.error.errors[0].message });
+        .json({ message: paramResult.error.issues[0].message || "Invalid ID" });
     }
     const { id: folderId } = paramResult.data;
 
@@ -80,9 +80,9 @@ router.get("/shares/:token", async (req, res) => {
     // Sanitize and validate req.params
     const paramsResult = shareParamsSchema.safeParse(req.params);
     if (!paramsResult.success) {
-      return res
-        .status(400)
-        .json({ message: paramsResult.error.errors[0].message });
+      return res.status(400).json({
+        message: paramsResult.error.issues[0].message || "Invalid token",
+      });
     }
     const { token } = paramsResult.data;
 
@@ -91,7 +91,7 @@ router.get("/shares/:token", async (req, res) => {
     if (!queryResult.success) {
       return res
         .status(400)
-        .json({ message: queryResult.error.errors[0].message });
+        .json({ message: queryResult.error.issues[0].message || "Invalid ID" });
     }
     const requestedFolderId = queryResult.data.folderId || null;
 
@@ -173,7 +173,9 @@ router.get("/shares/:token/files/:fileId/download", async (req, res) => {
     if (!paramsResult.success) {
       return res
         .status(400)
-        .json({ message: paramsResult.error.errors[0].message });
+        .json({
+          message: paramsResult.error.issues[0].message || "Invalid input",
+        });
     }
 
     const { token, fileId } = paramsResult.data;

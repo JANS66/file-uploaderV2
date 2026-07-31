@@ -18,7 +18,8 @@ router.post("/folders", authenticateToken, async (req, res) => {
     const parseResult = createFolderSchema.safeParse(req.body);
 
     if (!parseResult.success) {
-      const firstErrorMessage = parseResult.error.errors[0].message;
+      const firstErrorMessage =
+        parseResult.error.issues[0]?.message || "Invalid input";
       return res.status(400).json({ message: firstErrorMessage });
     }
 
@@ -58,7 +59,7 @@ router.get("/contents", authenticateToken, async (req, res) => {
     const parseResult = contentsQuerySchema.safeParse(req.query);
 
     if (!parseResult.success) {
-      const errorMessage = parseResult.error.errors[0].message;
+      const errorMessage = parseResult.error.issues[0]?.message || "Invalid ID";
       return res.status(400).json({ message: errorMessage });
     }
 
@@ -96,15 +97,15 @@ router.put("/folders/:id", authenticateToken, async (req, res) => {
     if (!paramResult.success) {
       return res
         .status(400)
-        .json({ message: paramResult.error.errors[0].message });
+        .json({ message: paramResult.error.issues[0].message || "Invalid ID" });
     }
 
     // Validate and sanitize body payload
     const bodyResult = updateFolderSchema.safeParse(req.body);
     if (!bodyResult.success) {
-      return res
-        .status(400)
-        .json({ message: bodyResult.error.errors[0].message });
+      return res.status(400).json({
+        message: bodyResult.error.issues[0].message || "Invalid input",
+      });
     }
 
     const { id } = paramResult.data;
@@ -148,7 +149,7 @@ router.delete("/folders/:id", authenticateToken, async (req, res) => {
     if (!paramResult.success) {
       return res
         .status(400)
-        .json({ message: paramResult.error.errors[0].message });
+        .json({ message: paramResult.error.issues[0].message || "Invalid ID" });
     }
 
     const { id } = paramResult.data;

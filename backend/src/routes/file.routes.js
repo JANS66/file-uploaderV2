@@ -53,9 +53,9 @@ router.delete("/files/:id", authenticateToken, async (req, res) => {
   try {
     const paramResult = idParamSchema.safeParse(req.params);
     if (!paramResult.success) {
-      return res
-        .status(400)
-        .json({ message: paramResult.error.errors[0].message });
+      return res.status(400).json({
+        message: paramResult.error.issues[0]?.message || "Invalid ID",
+      });
     }
 
     const { id } = paramResult.data;
@@ -90,7 +90,7 @@ router.get("/files/:id/download", authenticateToken, async (req, res) => {
     if (!paramResult.success) {
       return res
         .status(400)
-        .json({ message: paramResult.error.errors[0].message });
+        .json({ message: paramResult.error.issues[0].message || "Invalid ID" });
     }
 
     const { id } = paramResult.data;
