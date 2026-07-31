@@ -51,8 +51,8 @@ router.post("/signup", async (req, res) => {
     // Set token in secure httpOnly Cookie
     res.cookie("token", token, {
       httpOnly: true, // Prevents JavaScript (XSS) from reading the token
-      secure: process.env.NODE_ENV === "production", // HTTPS only in production
-      sameSite: "lax", // Protects against CSRF
+      secure: true, // HTTPS only in production
+      sameSite: "none", // Protects against CSRF
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
     });
 
