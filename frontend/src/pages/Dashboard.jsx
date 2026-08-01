@@ -17,8 +17,6 @@ import { EditFolderModal } from "../components/modals/EditFolderModal";
 import { ShareFolderModal } from "../components/modals/ShareFolderModal";
 import { apiFetch } from "../api/client";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL;
-
 export function Dashboard() {
   const [uploading, setUploading] = useState(false);
   const [createFolderModal, setCreateFolderModal] = useState(false);
@@ -144,7 +142,7 @@ export function Dashboard() {
   };
 
   const handleDownloadFile = (fileId) => {
-    const downloadUrl = `${API_BASE_URL}/api/files/${fileId}/download`;
+    const downloadUrl = `/api/files/${fileId}/download`;
     window.open(downloadUrl, "_blank");
   };
 
