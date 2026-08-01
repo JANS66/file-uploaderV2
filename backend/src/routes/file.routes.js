@@ -1,7 +1,7 @@
 import { Router } from "express";
 import path from "path";
 import { prisma } from "../db/db.js";
-import { upload, cloudinary } from "../config/cloudinary.js";
+import { upload, uploadToCloudinary } from "../config/cloudinary.js";
 import { authenticateToken } from "../middleware/auth.js";
 import { idParamSchema } from "../schemas/file.schema.js";
 import { deleteFromCloudinary } from "../utils/cloudinary.js";
@@ -22,16 +22,27 @@ router.post(
       const userId = req.user.id;
       const folderId = req.body.folderId || null;
 
-      // Prepare file records for batch database insert
-      const fileData = req.files.map((file) => ({
-        originalName: file.originalname,
-        storedName: file.filename, // Cloudinary public_id
-        mimeType: file.mimetype,
-        size: file.size,
-        url: file.path, // Cloudinary URL
-        userId: userId,
-        folderId: folderId,
-      }));
+      // Upload all files from memory buffers to Cloudinary in parallel
+      const uploadPromises = req.files.map((file) =>
+        uploadToCloudinary(file.buffer, file.mimetype),
+      );
+
+      const cloudinaryResults = await Promise.all(uploadPromises);
+
+      // Map Cloudinary responses to match Prisma database schema
+      const fileData = req.files.map((file, index) => {
+        const cloudinaryResult = cloudinaryResults[index];
+
+        return {
+          originalName: file.originalname,
+          storedName: cloudinaryResult.public_id, // Cloudinary public_id
+          mimeType: file.mimetype,
+          size: file.size,
+          url: cloudinaryResult.secure_url, // Cloudinary URL
+          userId: userId,
+          folderId: folderId,
+        };
+      });
 
       // Create records in DB and return saved instances
       const createdFiles = await prisma.file.createManyAndReturn({
