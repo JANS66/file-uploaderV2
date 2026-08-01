@@ -41,8 +41,8 @@ export function SharedFolderPage() {
 
         // Fetch shared contents
         const url = currentFolderId
-          ? `${API_BASE_URL}/api/shares/${shareToken}?folderId=${currentFolderId}`
-          : `${API_BASE_URL}/api/shares/${shareToken}`;
+          ? `/api/shares/${shareToken}?folderId=${currentFolderId}`
+          : `/api/shares/${shareToken}`;
 
         const data = await apiFetch.get(url);
 
