@@ -1,7 +1,11 @@
 import { Router } from "express";
 import path from "path";
 import { prisma } from "../db/db.js";
-import { upload, uploadToCloudinary } from "../config/cloudinary.js";
+import {
+  upload,
+  uploadToCloudinary,
+  cloudinary,
+} from "../config/cloudinary.js";
 import { authenticateToken } from "../middleware/auth.js";
 import { idParamSchema } from "../schemas/file.schema.js";
 import { deleteFromCloudinary } from "../utils/cloudinary.js";
