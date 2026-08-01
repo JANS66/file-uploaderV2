@@ -1,13 +1,15 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-
+import multer from "multer";
 import authRoutes from "./routes/auth.routes.js";
 import folderRoutes from "./routes/folder.routes.js";
 import fileRoutes from "./routes/file.routes.js";
 import shareRoutes from "./routes/share.routes.js";
 
 const app = express();
+
+app.set("trust proxy", 1);
 
 // Middlewares
 app.use(cookieParser());
