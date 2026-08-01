@@ -1,12 +1,26 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
+// Default timeout: 10 seconds for standard requests
+const DEFAULT_TIMEOUT_MS = 10000;
+
 export async function apiFetch(endpoint, options = {}) {
-  const { body, headers = {}, ...customConfig } = options;
+  const {
+    body,
+    headers = {},
+    timeout = DEFAULT_TIMEOUT_MS,
+    ...customConfig
+  } = options;
+
+  // Setup AbortController for the timeout
+  const controller = new AbortController();
+  const timeoutId =
+    timeout > 0 ? setTimeout(() => controller.abort(), timeout) : null;
 
   const config = {
     method: "GET",
     credentials: "include", // Sent by default on all requests
     ...customConfig,
+    signal: controller.signal,
     headers: { ...headers },
   };
 
@@ -17,20 +31,32 @@ export async function apiFetch(endpoint, options = {}) {
     config.body = body;
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
 
-  const contentType = response.headers.get("content-type");
-  const data =
-    contentType && contentType.includes("application/json")
-      ? await response.json()
-      : null;
+    const contentType = response.headers.get("content-type");
+    const data =
+      contentType && contentType.includes("application/json")
+        ? await response.json()
+        : null;
 
-  if (!response.ok) {
-    const errorMessage = data?.message || "An unexpected error occurred.";
-    throw new Error(errorMessage);
+    if (!response.ok) {
+      const errorMessage = data?.message || "An unexpected error occurred.";
+      throw new Error(errorMessage);
+    }
+    return data;
+  } catch (error) {
+    // Catch the abort event and turn it into a clear Timeout Error
+    if (error.name === "AbortError") {
+      throw new Error(`Request timed out after ${timeout / 1000} seconds.`, {
+        cause: error,
+      });
+    }
+    throw error;
+  } finally {
+    // Always clear the times so memory if freed immediately upon completion
+    if (timeoutId) clearTimeout(timeoutId);
   }
-
-  return data;
 }
 
 // Shortcut HTTP method helpers for cleaner usage
