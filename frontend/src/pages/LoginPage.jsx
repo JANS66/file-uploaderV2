@@ -14,7 +14,7 @@ import { useForm } from "@mantine/form";
 import { IconAlertCircle } from "@tabler/icons-react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+import { apiFetch } from "../api/client";
 
 export function LoginPage() {
   const [serverError, setServerError] = useState("");
@@ -40,21 +40,10 @@ export function LoginPage() {
     setServerError("");
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          email: values.email.trim().toLowerCase(),
-          password: values.password,
-        }),
+      const data = await apiFetch.post("/api/login", {
+        email: values.email.trim().toLowerCase(),
+        password: values.password,
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Login failed.");
-      }
 
       handleAuthSuccess(data.user);
       navigate("/dashboard");

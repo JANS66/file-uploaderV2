@@ -15,7 +15,7 @@ import {
   Container,
   Alert,
 } from "@mantine/core";
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+import { apiFetch } from "../api/client";
 
 export function SignUpPage() {
   const [loading, setLoading] = useState(false);
@@ -57,18 +57,7 @@ export function SignUpPage() {
         password: values.password,
       };
 
-      const response = await fetch(`${API_BASE_URL}/api/signup`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include", // Allows browser to save the httpOnly cookie
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to create account.");
-      }
+      const data = await apiFetch.post("/api/signup", payload);
 
       // Lift state up to global Auth Context
       handleAuthSuccess(data.user);

@@ -12,6 +12,7 @@ import {
 } from "@mantine/core";
 import { IconAlertCircle } from "@tabler/icons-react";
 import { DirectoryView } from "../components/files/DirectoryView";
+import { apiFetch } from "../api/client";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -43,12 +44,7 @@ export function SharedFolderPage() {
           ? `${API_BASE_URL}/api/shares/${shareToken}?folderId=${currentFolderId}`
           : `${API_BASE_URL}/api/shares/${shareToken}`;
 
-        const res = await fetch(url);
-        const data = await res.json();
-
-        if (!res.ok) {
-          throw new Error(data.message || "Invalid or expired share link.");
-        }
+        const data = await apiFetch.get(url);
 
         if (isMounted) {
           setFolderName(data.folderName || "Shared Folder");

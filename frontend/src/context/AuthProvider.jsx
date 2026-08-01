@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { AuthContext } from "./AuthContext";
-
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+import { apiFetch } from "../api/client";
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -11,19 +10,9 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/status`, {
-          method: "GET",
-          credentials: "include",
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setUser(data.user);
-        } else {
-          setUser(null);
-        }
-      } catch (error) {
-        console.error("Session check failed:", error);
+        const data = await apiFetch.get("/api/status");
+        setUser(data.user);
+      } catch {
         setUser(null);
       } finally {
         setLoading(false);
@@ -40,10 +29,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await fetch(`${API_BASE_URL}/api/logout`, {
-        method: "POST",
-        credentials: "include",
-      });
+      await apiFetch.post("/api/logout");
     } catch (error) {
       console.error("Logout request error:", error);
     } finally {

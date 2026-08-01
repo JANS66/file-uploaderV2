@@ -15,6 +15,7 @@ import { FileUploader } from "../components/files/FileUploader";
 import { useState, useEffect } from "react";
 import { EditFolderModal } from "../components/modals/EditFolderModal";
 import { ShareFolderModal } from "../components/modals/ShareFolderModal";
+import { apiFetch } from "../api/client";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -41,18 +42,9 @@ export function Dashboard() {
 
     async function loadContents() {
       try {
-        const url = currentFolder
-          ? `${API_BASE_URL}/api/contents?folderId=${currentFolder.id}`
-          : `${API_BASE_URL}/api/contents`;
+        const query = currentFolder ? `?folderId=${currentFolder.id}` : "";
+        const data = await apiFetch.get(`/api/contents${query}`);
 
-        const res = await fetch(url, {
-          method: "GET",
-          credentials: "include",
-        });
-
-        if (!res.ok) throw new Error("Failed to load contents");
-
-        const data = await res.json();
         if (isMounted) {
           setFolders(data.folders || []);
           setFiles(data.files || []);
@@ -74,27 +66,14 @@ export function Dashboard() {
   const handleUploadFiles = async (files) => {
     const formData = new FormData();
     files.forEach((file) => formData.append("files", file));
-
     // If viewing a subfolder, attach folderId to the FormData payload
-    if (currentFolder?.id) {
-      formData.append("folderId", currentFolder.id);
-    }
+    if (currentFolder?.id) formData.append("folderId", currentFolder.id);
 
     setUploading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/files/upload`, {
-        method: "POST",
-        credentials: "include",
-        body: formData,
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error("Upload failed");
-
+      const data = await apiFetch.post("/api/files/upload", formData);
       // Append newly uploaded files returned by backend
-      if (data.files && Array.isArray(data.files)) {
-        setFiles((prev) => [...prev, ...data.files]);
-      }
+      if (data.files) setFiles((prev) => [...prev, ...data.files]);
     } catch (err) {
       console.error(err);
     } finally {
@@ -109,25 +88,9 @@ export function Dashboard() {
       folderId: currentFolder?.id || null, // Attach parent folderId context
     };
 
-    const response = await fetch(`${API_BASE_URL}/api/folders`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include", // Send httpOnly JWT cookie for authentication
-      body: JSON.stringify(payload), // Sends { name: "My Folder" }
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      // Throw error so handleSubmit in modal catches it and sets form error message
-      throw new Error(data.message || "Failed to create folder");
-    }
-
+    const data = await apiFetch.post("/api/folders", payload);
     // Append newly created folder returned by backend
-    if (data.folder) {
-      setFolders((prev) => [...prev, data.folder]);
-    }
+    if (data.folder) setFolders((prev) => [...prev, data.folder]);
   };
 
   // Navigation handlers
@@ -148,16 +111,7 @@ export function Dashboard() {
 
   const handleDeleteFolder = async (folderId) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/folders/${folderId}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || "Failed to delete folder");
-      }
-
+      await apiFetch.delete(`/api/folders/${folderId}`);
       // Remove deleted folder from local state
       setFolders((prev) => prev.filter((f) => f.id !== folderId));
     } catch (err) {
@@ -167,16 +121,7 @@ export function Dashboard() {
 
   const handleDeleteFile = async (fileId) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/files/${fileId}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || "Failed to delete file");
-      }
-
+      await apiFetch.delete(`/api/files/${fileId}`);
       // Remove deleted file from local state
       setFiles((prev) => prev.filter((f) => f.id !== fileId));
     } catch (err) {
@@ -185,21 +130,9 @@ export function Dashboard() {
   };
 
   const handleEditFolder = async (folderId, newName) => {
-    const response = await fetch(`${API_BASE_URL}/api/folders/${folderId}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
-      body: JSON.stringify({ name: newName }),
+    const data = await apiFetch.put(`/api/folders/${folderId}`, {
+      name: newName,
     });
-
-    const data = await response.json();
-    if (!response.ok) {
-      // Throw so EditFolderModal catches it and displays form.setFieldError
-      throw new Error(data.message || "Failed to rename folder");
-    }
-
     // Update local state directly with the servers sanitized response
     if (data.folder) {
       setFolders((prev) =>
@@ -217,21 +150,10 @@ export function Dashboard() {
 
   // API Call to generate share token
   const handleGenerateShareLink = async (folderId, expiresIn) => {
-    const response = await fetch(
-      `${API_BASE_URL}/api/folders/${folderId}/share`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ expiresIn }),
-      },
-    );
+    const data = await apiFetch.post(`/api/folders/${folderId}/share`, {
+      expiresIn,
+    });
 
-    if (!response.ok) {
-      throw new Error("Failed to create share link");
-    }
-
-    const data = await response.json();
     // Return full shareable URL
     return `${window.location.origin}/share/${data.shareToken}`;
   };
