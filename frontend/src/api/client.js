@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+const API_BASE_URL = import.meta.env.VITE_API_URL || "";
 
 // Default timeout: 10 seconds for standard requests
 const DEFAULT_TIMEOUT_MS = 10000;
