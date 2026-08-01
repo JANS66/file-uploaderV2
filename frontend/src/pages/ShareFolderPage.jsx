@@ -14,8 +14,6 @@ import { IconAlertCircle } from "@tabler/icons-react";
 import { DirectoryView } from "../components/files/DirectoryView";
 import { apiFetch } from "../api/client";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL;
-
 export function SharedFolderPage() {
   const { shareToken } = useParams();
 
@@ -73,7 +71,7 @@ export function SharedFolderPage() {
   // Public File Download Handler
   const handleDownloadFile = (fileId) => {
     // Uses public download endpoint with shareToken for authentication
-    const downloadUrl = `${API_BASE_URL}/api/shares/${shareToken}/files/${fileId}/download`;
+    const downloadUrl = `/api/shares/${shareToken}/files/${fileId}/download`;
     window.open(downloadUrl, "_blank");
   };
 
